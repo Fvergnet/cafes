@@ -45,10 +45,10 @@ int main(int argc, char **argv)
     // c.discretize_surface(10);
 
     double R1 = .1;
-    double distance = .15;
+    double distance = .01;
 
-    auto se1 = cafes::make_circle({.5 - .5*(distance+R1), .5}, R1, 0);
-    auto se2 = cafes::make_circle({.5 + .5*(distance+R1), .5}, R1, 0);
+    auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
+    auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
     std::vector<cafes::particle<decltype(se1)>> pt{
         cafes::make_particle_with_velocity(se1, {1., 0.}, 0.),
         cafes::make_particle_with_velocity(se2, {-1., 0.}, 0.)
