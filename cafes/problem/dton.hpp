@@ -240,7 +240,7 @@ struct convergence_context2
                 ierr = VecScale(rhs, -1.);
                 CHKERRQ(ierr);
 
-                ierr = VecCopy(sol_tmp, sol_rhs);
+                ierr = VecCopy(ctx->sol_tmp, sol_rhs);
                 CHKERRQ(ierr);
                 PetscFunctionReturn(0);
             }
@@ -542,6 +542,8 @@ static PetscErrorCode convergeTest2(KSP ksp, PetscInt it, PetscReal rnorm, KSPCo
             {
                 PetscErrorCode ierr;
                 PetscFunctionBegin;
+                options<Dimensions> opt{};
+                opt.process_options();
                 // solve the problem with the right control
 
                 ierr = VecSet(ctx->problem.rhs, 0.);
@@ -551,7 +553,7 @@ static PetscErrorCode convergeTest2(KSP ksp, PetscInt it, PetscReal rnorm, KSPCo
                 {
                     ctx->compute_rhs = true;
                     ctx->add_rigid_motion = true;
-                    ctx->compute_singularity = false;
+                    ctx->compute_singularity = opt.compute_singularity;
                 }
 
                 ierr = init_problem<Dimensions, Ctx>(*ctx, sol);
@@ -596,22 +598,20 @@ static PetscErrorCode convergeTest2(KSP ksp, PetscInt it, PetscReal rnorm, KSPCo
                 ierr = KSPSolve(ksp, rhs, sol);
                 CHKERRQ(ierr);
 
-                // ierr = init_problem<Dimensions, Ctx>(*ctx, sol);CHKERRQ(ierr);
-                // ierr = ctx->problem.solve();
-                // CHKERRQ(ierr);
-                // ierr = VecCopy(ctx->problem.sol, sol_tmp);
-                // CHKERRQ(ierr);
-                // VecCopy(sol_tmp, sol_reg);
-                // VecAXPY(sol_reg, 1., sol_rhs);
+                ierr = VecSet(ctx->problem.rhs, 0.);CHKERRQ(ierr);
+                ierr = init_problem<Dimensions, Ctx>(*ctx, sol);CHKERRQ(ierr);
+                ierr = ctx->problem.solve();CHKERRQ(ierr);
+                // ierr = VecCopy(ctx->problem.sol, sol_tmp);CHKERRQ(ierr);
+                ierr =VecAXPY(ctx->problem.sol, 1., sol_rhs);CHKERRQ(ierr);
                 // ierr = KSPGetIterationNumber(ksp, &kspiter);CHKERRQ(ierr);
                 // ierr = KSPGetResidualNorm(ksp, &kspresnorm);CHKERRQ(ierr);
 
-                if (default_flags_)
-                {
-                    std::cout << "Last Problem...\n";
-                    ierr = solve_last_problem();
-                    CHKERRQ(ierr);
-                }
+                // if (default_flags_)
+                // {
+                //     std::cout << "Last Problem...\n";
+                //     ierr = solve_last_problem();
+                //     CHKERRQ(ierr);
+                // }
 
                 PetscFunctionReturn(0);
             }
