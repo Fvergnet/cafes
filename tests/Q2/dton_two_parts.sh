@@ -3,7 +3,7 @@
 exec=../../build/tests/dton_two_parts
 nproc=1
 
-for i in '65'
+for i in '61'
 do
 $exec \
     -stokes_ksp_type preonly \

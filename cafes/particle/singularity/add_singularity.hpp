@@ -69,6 +69,7 @@ namespace cafes
       using position_type_i = geometry::position<int, Dimensions>;
 
       std::array<double, Dimensions> hs = {{h[0]/sing.scale, h[1]/sing.scale}};
+      std::array<double, Dimensions> hu = {{.5*h[0], .5*h[1]}};
       double coef = 1./(sing.scale*sing.scale);
 
       for(int j=box.bottom_left[1]; j<box.upper_right[1]; ++j)
@@ -76,7 +77,7 @@ namespace cafes
         for(int i=box.bottom_left[0]; i<box.upper_right[0]; ++i)
         {
           position_type_i pts_i = {i, j};
-          auto ielem = fem::get_element(pts_i, 1);
+          auto ielem = fem::get_element(2*pts_i, 2);
 
           for(std::size_t js=0; js<sing.scale; ++js)
           {
@@ -92,7 +93,7 @@ namespace cafes
                 {
                   position_type pts_loc = {is*hs[0], js*hs[1]};
 
-                  auto bfunc = fem::P1_integration_grad(pts_loc, h);
+                  auto bfunc = fem::P2_integration_grad(pts_loc, hu);
 
                   auto gradUsing = sing.get_grad_u_sing(pts);
                   auto psing = sing.get_p_sing(pts);
@@ -123,7 +124,7 @@ namespace cafes
                   position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
                   position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
                   position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P1_integration_grad(pts_loc, h);
+                  auto bfunc = fem::P2_integration_grad(pts_loc, hu);
 
                   auto gradUsing = sing.get_grad_u_sing(pts_border);
                   auto psing = sing.get_p_sing(pts_border);
@@ -153,7 +154,7 @@ namespace cafes
                   position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
                   position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
                   position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P1_integration_grad(pts_loc, h);
+                  auto bfunc = fem::P2_integration_grad(pts_loc, hu);
 
                   auto gradUsing = sing.get_grad_u_sing(pts_border);
                   auto psing = sing.get_p_sing(pts_border);
@@ -204,7 +205,7 @@ namespace cafes
         for(std::size_t i=box.bottom_left[0]; i<box.upper_right[0]; ++i)
         {
           position_type_i pts_i = {i, j};
-          auto ielem = fem::get_element(pts_i);
+          auto ielem = fem::get_element(pts_i,1);
 
           for(std::size_t js=0; js<2*sing.scale; ++js)
           {
@@ -701,14 +702,14 @@ namespace cafes
           using shape_type = typename decltype(p1)::shape_type;
 
           // Velocity
-          auto sing = singularity<shape_type, Dimensions>(p1, p2, h[0]);
+          auto sing = singularity<shape_type, Dimensions>(p1, p2, hp[0]);
           if (sing.is_singularity_)
           {
-            auto pbox = sing.get_box(h);
-            if (geometry::intersect(box, pbox))
+            auto pbox = sing.get_box(hp);
+            if (geometry::intersect(boxp, pbox))
             {
-              auto new_box = geometry::box_inside(box, pbox);
-              ierr = computesingularST(sing, p1, p2, sol, new_box, h);CHKERRQ(ierr);
+              auto new_box = geometry::box_inside(boxp, pbox);
+              ierr = computesingularST(sing, p1, p2, sol, new_box, hp);CHKERRQ(ierr);
             }
           }
 

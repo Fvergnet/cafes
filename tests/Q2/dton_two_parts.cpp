@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     // c.discretize_surface(10);
 
     double R1 = .1;
-    double distance = .01;
+    double distance = .2;
 
     auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
     auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     ierr = s.solve();
     CHKERRQ(ierr);
 
-    std::string stout = "two_parts_solution_";
+    std::string stout = "two_parts_solution_with_sing_";
     stout.append(std::to_string(mx));
     stout.append("_distance_");
     stout.append(std::to_string(distance));
