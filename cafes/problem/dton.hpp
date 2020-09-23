@@ -603,6 +603,11 @@ static PetscErrorCode convergeTest2(KSP ksp, PetscInt it, PetscReal rnorm, KSPCo
                 ierr = ctx->problem.solve();CHKERRQ(ierr);
                 // ierr = VecCopy(ctx->problem.sol, sol_tmp);CHKERRQ(ierr);
                 ierr =VecAXPY(ctx->problem.sol, 1., sol_rhs);CHKERRQ(ierr);
+                // if (ctx->compute_singularity)
+                // {
+                //     ierr = cafes::singularity::add_singularity_to_ureg(ctx->problem.ctx->dm, ctx->problem.ctx->h, ctx->problem.sol, ctx->particles);
+                // }
+                
                 // ierr = KSPGetIterationNumber(ksp, &kspiter);CHKERRQ(ierr);
                 // ierr = KSPGetResidualNorm(ksp, &kspresnorm);CHKERRQ(ierr);
 

@@ -81,6 +81,15 @@ namespace cafes
 
       force_type force_{};
       double rho_;
+
+      particle(){}
+
+      particle(const particle&) = default;
+      particle(particle&&) = default;
+
+      particle& operator=(const particle&) = default;
+      particle& operator=(particle&&) = default;
+
       particle( Shape const& s, force_type const& f, double r )
       : Shape(s), force_(f), rho_(r)
       {}

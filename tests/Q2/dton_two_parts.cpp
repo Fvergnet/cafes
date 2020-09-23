@@ -2,6 +2,7 @@
 #include <petsc.h>
 
 #include <particle/singularity/add_singularity.hpp>
+#include "fenicsfunction.hpp"
 
 void zeros(const PetscReal x[], PetscScalar *u)
 {
@@ -20,6 +21,7 @@ void ones_m(const PetscReal x[], PetscScalar *u)
 
 int main(int argc, char **argv)
 {
+
     PetscErrorCode ierr;
     std::size_t const dim = 2;
 
@@ -45,7 +47,7 @@ int main(int argc, char **argv)
     // c.discretize_surface(10);
 
     double R1 = .1;
-    double distance = .2;
+    double distance = .05;
 
     auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
     auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
@@ -66,6 +68,11 @@ int main(int argc, char **argv)
     ierr = s.solve();
     CHKERRQ(ierr);
 
+    // ff.loadmesh("test.txt");
+    // auto test = mesh.interpolate(ctx, st.sol);
+
+    // cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
+
     std::string stout = "two_parts_solution_with_sing_";
     stout.append(std::to_string(mx));
     stout.append("_distance_");
@@ -74,6 +81,11 @@ int main(int argc, char **argv)
     ierr = cafes::io::save_hdf5("Resultats", stw, st.sol, st.ctx->dm,
                               st.ctx->h);
     CHKERRQ(ierr);
+
+    auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], s.ctx->compute_singularity);
+    auto ff = FenicsFunction("reference_mesh_velocity.txt", "reference_mesh_pressure.txt");
+    ff.interpolate(ctx, st.sol);
+    ff.save(stout);
 
     ierr = PetscFinalize();
     CHKERRQ(ierr);

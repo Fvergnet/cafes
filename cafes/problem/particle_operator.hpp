@@ -402,7 +402,9 @@ namespace cafes
 
       if (ctx.compute_singularity)
       {
+        ierr = cafes::io::save_hdf5("Resultats", "sing_rhs_avant", ctx.problem.rhs, ctx.problem.ctx->dm, ctx.problem.ctx->h);CHKERRQ(ierr);
         ierr = singularity::add_singularity_in_fluid<Dimensions, Ctx>(ctx);CHKERRQ(ierr);
+        ierr = cafes::io::save_hdf5("Resultats", "sing_rhs_après", ctx.problem.rhs, ctx.problem.ctx->dm, ctx.problem.ctx->h);CHKERRQ(ierr);
       }
 
       ierr = set_rhs_problem<Dimensions, Ctx>(ctx, x, apply_forces);CHKERRQ(ierr);

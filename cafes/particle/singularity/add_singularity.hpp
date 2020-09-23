@@ -70,7 +70,7 @@ namespace cafes
 
       std::array<double, Dimensions> hs = {{h[0]/sing.scale, h[1]/sing.scale}};
       std::array<double, Dimensions> hu = {{.5*h[0], .5*h[1]}};
-      double coef = 1./(sing.scale*sing.scale);
+      double coef = 16./(h[0]*h[1]*sing.scale*sing.scale);
 
       for(int j=box.bottom_left[1]; j<box.upper_right[1]; ++j)
       {
@@ -197,8 +197,8 @@ namespace cafes
       using position_type = geometry::position<double, Dimensions>;
       using position_type_i = geometry::position<int, Dimensions>;
 
-      std::array<double, Dimensions> hs = {{h[0]/(2*sing.scale), h[1]/(2*sing.scale)}};
-      double coef = 1./(4*sing.scale*sing.scale);
+      std::array<double, Dimensions> hs = {{h[0]/(sing.scale), h[1]/(sing.scale)}};
+      double coef = 1./(sing.scale*sing.scale);
 
       for(std::size_t j=box.bottom_left[1]; j<box.upper_right[1]; ++j)
       {
@@ -207,9 +207,9 @@ namespace cafes
           position_type_i pts_i = {i, j};
           auto ielem = fem::get_element(pts_i,1);
 
-          for(std::size_t js=0; js<2*sing.scale; ++js)
+          for(std::size_t js=0; js<sing.scale; ++js)
           {
-            for(std::size_t is=0; is<2*sing.scale; ++is)
+            for(std::size_t is=0; is<sing.scale; ++is)
             {
               position_type pts = {i*h[0] + is*hs[0], j*h[1] + js*hs[1]};
 
@@ -231,7 +231,7 @@ namespace cafes
                   for (std::size_t je=0; je<bfunc.size(); ++je)
                   {
                     auto u = sol.at(ielem[je]);
-                    u[0] -= coef*divUsing*bfunc[je];//*chix;
+                    u[0] += coef*divUsing*bfunc[je];//*chix;
                     //u[0] -= coef*(gradUsing[0][0] + gradUsing[Dimensions][Dimensions])*bfunc[je];
                   }
                 }
@@ -286,7 +286,7 @@ namespace cafes
                   for (std::size_t je=0; je<bfunc.size(); ++je)
                   {
                     auto u = sol.at(ielem[je]);
-                    u[0] -= coef*(
+                    u[0] += coef*(
                       // \partial_x u_x^{sing}(X,Y) * \chi(r)
                       (dx_pts_polar[1]*dtheta_pts_border[0]*gradUsing[0][0] + dx_pts_polar[1]*dtheta_pts_border[1]*gradUsing[1][0])*chi
                       // \partial_X u_y^{sing}(X,Y) * \chi(r)
@@ -341,7 +341,7 @@ namespace cafes
                   for (std::size_t je=0; je<bfunc.size(); ++je)
                   {
                     auto u = sol.at(ielem[je]);
-                    u[0] -= coef*(
+                    u[0] += coef*(
                       // \partial_x u_x^{sing}(X,Y) * \chi(r)
                       (dx_pts_polar[1]*dtheta_pts_border[0]*gradUsing[0][0] + dx_pts_polar[1]*dtheta_pts_border[1]*gradUsing[1][0])*chi
                       // \partial_X u_y^{sing}(X,Y) * \chi(r)
@@ -544,7 +544,7 @@ namespace cafes
       PetscErrorCode ierr;
       PetscFunctionBeginUser;
 
-      auto& h = ctx.problem.ctx->h;
+      std::array<double, Dimensions> h = {2*ctx.problem.ctx->h[0], 2*ctx.problem.ctx->h[1]};
 
       for(std::size_t isurf=0; isurf<ctx.surf_points[ipart_1].size(); ++isurf)
       {
@@ -677,7 +677,7 @@ namespace cafes
 
       auto union_box_func = geometry::union_box<int, Dimensions>;
 
-      auto box = fem::get_DM_bounds<Dimensions>(ctx.problem.ctx->dm, 0);
+      // auto box = fem::get_DM_bounds<Dimensions>(ctx.problem.ctx->dm, 0);
       auto& h = ctx.problem.ctx->h;
 
       auto sol = petsc::petsc_vec<Dimensions>(ctx.problem.ctx->dm, ctx.problem.rhs, 0, false);
@@ -715,7 +715,7 @@ namespace cafes
 
           // Pressure
           auto singp = singularity<shape_type, Dimensions>(p1, p2, hp[0]);
-          if (sing.is_singularity_)
+          if (singp.is_singularity_)
           {
             auto pboxp = singp.get_box(hp);
             if (geometry::intersect(boxp, pboxp))
@@ -1252,7 +1252,8 @@ namespace cafes
       auto union_box_func = geometry::union_box<int, Dimensions>;
 
       auto box = fem::get_DM_bounds<Dimensions>(ctx.problem.ctx->dm, 0);
-      auto& h = ctx.problem.ctx->h;
+      std::array<double,Dimensions> h = {2*ctx.problem.ctx->h[0], 2*ctx.problem.ctx->h[1]};
+      // auto& h = ctx.problem.ctx->h;
 
       //Loop on particles couples
       for (std::size_t ipart=0; ipart<ctx.particles.size()-1; ++ipart)
