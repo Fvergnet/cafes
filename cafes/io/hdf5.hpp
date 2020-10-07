@@ -48,63 +48,59 @@ namespace cafes
             std::stringstream output;
             std::stringstream output_h5;
 
-            output << path << "/" << filename << ".xdmf";
+            output << path << "/" << filename << "_pressure.xdmf";
             output_h5 << filename << ".h5";
 
             std::ofstream myfile;
             myfile.open(output.str());
 
-            myfile << "<Xdmf>\n";
-            myfile << "<Domain>\n";
-            myfile << "  <Grid CollectionType=\"Spatial\" "
-                      "GridType=\"Collection\" Name=\"Collection\">\n";
-            myfile
-                << "    <Grid Name=\"pressure_grid\" GridType=\"Uniform\">\n";
-            myfile << "      <Topology TopologyType=\"2DCoRectMesh\" "
-                      "NumberOfElements=\""
-                   << info.mx / 2 + 1 << " " << info.my / 2 + 1 << "\"/>\n";
-            myfile << "      <Geometry GeometryType=\"ORIGIN_DXDY\">\n";
-            myfile << "        <DataItem DataType=\"Float\" Dimensions= \"2\" "
-                      "Format=\"XML\">0.0 0.0 </DataItem>\n";
-            myfile << "        <DataItem DataType=\"Float\" Dimensions= \"2\" "
-                      "Format=\"XML\">"
-                   << 2 * h[0] << " " << 2 * h[1] << "</DataItem>\n";
-            myfile << "      </Geometry>\n";
-            myfile << "      <Attribute Name=\"pressure\" "
-                      "AttributeType=\"Scalar\" Center=\"Node\">\n";
-            myfile << "        <DataItem DataType=\"Float\" Precision=\"8\" "
-                      "Format=\"HDF\" Dimensions=\""
-                   << info.mx / 2 << " " << info.my / 2 << "\">\n";
-            myfile << "          " << output_h5.str() << ":/pressure\n";
-            myfile << "        </DataItem>\n";
-            myfile << "      </Attribute>\n";
+            myfile << "<?xml version=\"1.0\" ?>\n";
+            myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
+            myfile << "<Xdmf Version=\"2.1\">\n";
+            myfile << "<Domain Name=\"Your_Domain\">\n";
+            myfile << "    <Grid GridType=\"Uniform\" Name=\"Mesh\">\n";
+            myfile << "        <Topology TopologyType=\"2DCoRectMesh\" Dimensions=\""<< info.mx/2+1 << " " << info.my/2+1 << "\" />\n";
+            myfile << "        <Geometry Type=\"ORIGIN_DXDY\">\n";
+            myfile << "            <DataItem DataType=\"Float\" Dimensions=\"2\" Format=\"XML\"> 0. 0. </DataItem>\n";
+            myfile << "            <DataItem DataType=\"Float\" Dimensions=\"2\" Format=\"XML\">" << 2*h[0] << " " << 2*h[1] << "</DataItem>\n";
+            myfile << "        </Geometry>\n";
+            myfile << "        <Attribute Name=\"Pressure\" AttributeType=\"Scalar\" Center=\"Node\" Precision=\"8\">\n"; 
+            myfile << "            <DataItem Format=\"HDF\" Dimensions=\""<< info.mx/2+1 << " " << info.my/2+1 << "\" NumberType=\"Float\">\n";   
+            myfile << "                " << output_h5.str() << ":/pressure\n";
+            myfile << "            </DataItem>      \n";
+            myfile << "        </Attribute>\n";
             myfile << "    </Grid>\n";
-            myfile
-                << "    <Grid Name=\"velocity_grid\" GridType=\"Uniform\">\n";
-            myfile << "      <Topology TopologyType=\"2DCoRectMesh\" "
-                      "NumberOfElements=\""
-                   << info.mx << " " << info.my << "\"/>\n";
-            myfile << "      <Geometry GeometryType=\"ORIGIN_DXDY\">\n";
-            myfile << "        <DataItem DataType=\"Float\" Dimensions= \"2\" "
-                      "Format=\"XML\">0.0 0.0 </DataItem>\n";
-            myfile << "        <DataItem DataType=\"Float\" Dimensions= \"2\" "
-                      "Format=\"XML\">"
-                   << h[0] << " " << h[1] << "</DataItem>\n";
-            myfile << "      </Geometry>\n";
-            myfile << "      <Attribute Name=\"velocity\" "
-                      "AttributeType=\"Vector\" Center=\"Node\">\n";
-            myfile << "        <DataItem DataType=\"Float\" Precision=\"8\" "
-                      "Format=\"HDF\" Dimensions=\""
-                   << info.mx << " " << info.my << " 2\">\n";
-            myfile << "          " << output_h5.str() << ":/velocity\n";
-            myfile << "        </DataItem>\n";
-            myfile << "      </Attribute>\n";
-            myfile << "    </Grid>\n";
-            myfile << "  </Grid>\n";
             myfile << "</Domain>\n";
             myfile << "</Xdmf>\n";
-
             myfile.close();
+
+            std::stringstream output_vel;
+            std::stringstream output_vel_h5;
+
+            output_vel << path << "/" << filename << "_velocity.xdmf";
+
+            myfile.open(output_vel.str());
+
+            myfile << "<?xml version=\"1.0\" ?>\n";
+            myfile << "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n";
+            myfile << "<Xdmf Version=\"2.1\">\n";
+            myfile << "<Domain Name=\"Your_Domain\">\n";
+            myfile << "    <Grid GridType=\"Uniform\" Name=\"Mesh\">\n";
+            myfile << "        <Topology TopologyType=\"2DCoRectMesh\" Dimensions=\""<< info.mx << " " << info.my << "\" />\n";
+            myfile << "        <Geometry Type=\"ORIGIN_DXDY\">\n";
+            myfile << "            <DataItem DataType=\"Float\" Dimensions=\"2\" Format=\"XML\"> 0. 0. </DataItem>\n";
+            myfile << "            <DataItem DataType=\"Float\" Dimensions=\"2\" Format=\"XML\">" << h[0] << " " << h[1] << "</DataItem>\n";
+            myfile << "        </Geometry>\n";
+            myfile << "        <Attribute Name=\"Velocity\" AttributeType=\"Vector\" Center=\"Node\" Precision=\"8\">\n"; 
+            myfile << "            <DataItem Format=\"HDF\" Dimensions=\""<< info.mx << " " << info.my << " 2\" NumberType=\"Float\">\n";   
+            myfile << "                " << output_h5.str() << ":/velocity\n";
+            myfile << "            </DataItem>      \n";
+            myfile << "        </Attribute>\n";
+            myfile << "    </Grid>\n";
+            myfile << "</Domain>\n";
+            myfile << "</Xdmf>\n";
+            myfile.close();
+            
         }
 
 #undef __FUNCT__
