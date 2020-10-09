@@ -105,8 +105,8 @@ namespace cafes
 
                     for (std::size_t d1=0; d1<Dimensions; ++d1)
                     {
-                      for (std::size_t d2=0; d2<Dimensions; ++d2)
-                        u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2];//*chix;
+                      // for (std::size_t d2=0; d2<Dimensions; ++d2)
+                      //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2];//*chix;
                       u[d1] += coef*psing*bfunc[je][d1];//*chix;
                     }
                   }
@@ -127,8 +127,10 @@ namespace cafes
                   auto bfunc = fem::P2_integration_grad(pts_loc, hu);
 
                   auto gradUsing = sing.get_grad_u_sing(pts_border);
-                  auto psing = sing.get_p_sing(pts_border);
-                  auto chi = cafes::singularity::singTrunc(pts_polar[0]/p1.shape_factors_[0]);
+                  auto psing = sing.get_p_sing(pts);
+                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.5*p1.shape_factors_[0],0.25*p1.shape_factors_[0]);
+                  auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p1.center_[0])), .5*p1.shape_factors_[0], p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]))-.5*p1.shape_factors_[0]);
+                  // auto chi = cafes::singularity::singTrunc(pts_polar[0]/p1.shape_factors_[0]);
                   //auto chix = sing.get_x_truncation(pts_border);
                   
                   for (std::size_t je=0; je<bfunc.size(); ++je)
@@ -137,9 +139,9 @@ namespace cafes
 
                     for (std::size_t d1=0; d1<Dimensions; ++d1)
                     {
-                      for (std::size_t d2=0; d2<Dimensions; ++d2)
-                        u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-                      u[d1] += coef*psing*bfunc[je][d1]*chi;//*chix;
+                      // for (std::size_t d2=0; d2<Dimensions; ++d2)
+                      //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
+                      u[d1] += coef*psing*bfunc[je][d1]*chi*chix;
                     }
                   }
                 }
@@ -157,8 +159,10 @@ namespace cafes
                   auto bfunc = fem::P2_integration_grad(pts_loc, hu);
 
                   auto gradUsing = sing.get_grad_u_sing(pts_border);
-                  auto psing = sing.get_p_sing(pts_border);
-                  auto chi = cafes::singularity::singTrunc(pts_polar[0]/p2.shape_factors_[0]);
+                  auto psing = sing.get_p_sing(pts);
+                  // auto chi = cafes::singularity::singTrunc(pts_polar[0]/p2.shape_factors_[0]);
+                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.5*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
+                  auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p2.center_[0])), .5*p2.shape_factors_[0], p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]))-.5*p2.shape_factors_[0]);
                   //auto chix = sing.get_x_truncation(pts_border);
                   
                   for (std::size_t je=0; je<bfunc.size(); ++je)
@@ -167,9 +171,9 @@ namespace cafes
 
                     for (std::size_t d1=0; d1<Dimensions; ++d1)
                     {
-                      for (std::size_t d2=0; d2<Dimensions; ++d2)
-                        u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-                      u[d1] += coef*psing*bfunc[je][d1]*chi;//*chix;
+                      // for (std::size_t d2=0; d2<Dimensions; ++d2)
+                      //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
+                      u[d1] += coef*psing*bfunc[je][d1]*chi*chix;
                     }
                   }
                 }
@@ -713,17 +717,17 @@ namespace cafes
             }
           }
 
-          // Pressure
-          auto singp = singularity<shape_type, Dimensions>(p1, p2, hp[0]);
-          if (singp.is_singularity_)
-          {
-            auto pboxp = singp.get_box(hp);
-            if (geometry::intersect(boxp, pboxp))
-            {
-              auto new_box = geometry::box_inside(boxp, pboxp);
-              ierr = computesingularST_pressure(singp, p1, p2, solp, new_box, hp);CHKERRQ(ierr);
-            }
-          }
+          // // Pressure
+          // auto singp = singularity<shape_type, Dimensions>(p1, p2, hp[0]);
+          // if (singp.is_singularity_)
+          // {
+          //   auto pboxp = singp.get_box(hp);
+          //   if (geometry::intersect(boxp, pboxp))
+          //   {
+          //     auto new_box = geometry::box_inside(boxp, pboxp);
+          //     ierr = computesingularST_pressure(singp, p1, p2, solp, new_box, hp);CHKERRQ(ierr);
+          //   }
+          // }
         }
       }
 
