@@ -101,7 +101,7 @@ namespace cafes
         //auto tmp = alpha*std::sqrt(contact_length_/K_);
         //cutoff_dist_ = (tmp < minr)? tmp : minr;
         //cutoff_dist_ = (cutoff_dist_ <= std::sqrt(2)*h)? std::sqrt(2)*h : cutoff_dist_; 
-        cutoff_dist_ = minr; 
+        cutoff_dist_ = 0.75*minr; 
         std::cout << "cutoff_dist " << cutoff_dist_ << "\n";
         param_ = .5*cutoff_dist_*cutoff_dist_;
         //is_singularity_ = contact_length_<threshold_*cutoff_dist_;
@@ -128,11 +128,17 @@ namespace cafes
         double theta1 = std::asin(cutoff_dist_*H1_);
         double theta2 = std::asin(cutoff_dist_*H2_);
 
-        position_type p1_ref_up{ 1./H1_*(-1 + std::cos(theta1)), 1/H1_*std::sin(theta1)};
-        position_type p1_ref_down{ 1./H1_*(-1 + std::cos(theta1)), -1/H1_*std::sin(theta1)};
+        // position_type p1_ref_up{ 1./H1_*(-1 + std::cos(theta1)), 1/H1_*std::sin(theta1)};
+        // position_type p1_ref_down{ 1./H1_*(-1 + std::cos(theta1)), -1/H1_*std::sin(theta1)};
 
-        position_type p2_ref_up{ contact_length_ + 1./H2_*(1 - std::cos(theta2)), 1/H2_*std::sin(theta2)};
-        position_type p2_ref_down{ contact_length_ + 1./H2_*(1 - std::cos(theta2)), -1/H2_*std::sin(theta2)};
+        // position_type p2_ref_up{ contact_length_ + 1./H2_*(1 - std::cos(theta2)), 1/H2_*std::sin(theta2)};
+        // position_type p2_ref_down{ contact_length_ + 1./H2_*(1 - std::cos(theta2)), -1/H2_*std::sin(theta2)};
+
+        position_type p1_ref_up{ 1./H1_*(-1), 1/H1_*std::sin(theta1)};
+        position_type p1_ref_down{ 1./H1_*(-1), -1/H1_*std::sin(theta1)};
+
+        position_type p2_ref_up{ contact_length_ + 1./H2_, 1/H2_*std::sin(theta2)};
+        position_type p2_ref_down{ contact_length_ + 1./H2_, -1/H2_*std::sin(theta2)};
 
         position_type p1_up{ base_[0][0]*p1_ref_up[0]+ base_[1][0]*p1_ref_up[1] + origin_[0],
                              base_[0][1]*p1_ref_up[0]+ base_[1][1]*p1_ref_up[1] + origin_[1]};
