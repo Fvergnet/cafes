@@ -111,7 +111,7 @@ namespace cafes
 
      double X2 = X*X;
 
-     if(0<=X2<l-eps)
+     if(0<=X2 && X2<l-eps)
        return 1;
      else 
        if(l-eps<=X2 && X2<l+eps)
@@ -127,7 +127,7 @@ namespace cafes
      double X2 = X*X;
      //X = sqrt(X2); //on veut la norme
 
-     if(0<=X2<l-eps)
+     if(0<=X2 && X2<l-eps)
        return 0;
      else if(l-eps<=X2 && X2<l+eps)
        return -X/eps*dalphaTrunc((X2-l)/eps) ;
@@ -143,7 +143,7 @@ namespace cafes
      double X2 = X*X;
      //X = sqrt(X2); //on veut la norme
 
-     if(0<=X<l-eps)
+     if(0<=X2 && X2<l-eps)
        return 0;
      else if(l-eps<=X2 && X2<l+eps)
        return -2*X2/eps/eps*d2alphaTrunc((X2-l)/eps) - dalphaTrunc((X2-l)/eps)/eps;
@@ -159,7 +159,7 @@ namespace cafes
      double X2 = X*X;
      //X = sqrt(X2); //on veut la norme
 
-     if(0<=X<l-eps)
+     if(0<=X2 && X2<l-eps)
        return 1;
      else if(l-eps<=X2 && X2<l+eps)
        //return -4*X2*X/eps/eps/eps*d3alphaTrunc((X2-l)/eps) - 6*X/eps/eps*d2alphaTrunc((X2-l)/eps);
@@ -174,7 +174,7 @@ namespace cafes
      double X2 = X*X;
      //X = sqrt(X2); //on veut la norme
 
-     if(0<=X<l-eps)
+     if(0<=X2 && X2<l-eps)
        return 1;
      else if(l-eps<=X2 && X2<l+eps)
        //return -4*X2*X/eps/eps/eps*d3alphaTrunc((X2-l)/eps) - 6*X/eps/eps*d2alphaTrunc((X2-l)/eps);
