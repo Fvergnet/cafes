@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     // cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
 
     std::string stout = "two_parts_solution_with_sing_";
+    // std::string stout = "rhs_sing_";
     stout.append(std::to_string(mx));
     stout.append("_distance_");
     stout.append(std::to_string(distance));
