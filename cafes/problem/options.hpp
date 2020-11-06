@@ -48,6 +48,8 @@ namespace cafes
             PetscBool assembling = PETSC_FALSE;
             PetscBool pmm = PETSC_FALSE;
             PetscBool compute_singularity = PETSC_FALSE;
+            double distance = 0.1;
+            char saverep[256] = "Results";
 
             options()
             {
@@ -109,6 +111,14 @@ namespace cafes
                 ierr = PetscOptionsBool(
                     "-compute_singularity", "Compute singularity in Stokes solver",
                     "options.hpp", compute_singularity, &compute_singularity, nullptr);
+                CHKERRQ(ierr);
+                ierr = PetscOptionsReal(
+                    "-distance", "Distance between particles for Q2 test case",
+                    "options.hpp", distance, &distance, nullptr);
+                CHKERRQ(ierr);
+                ierr = PetscOptionsString(
+                    "-saverep", "Repertory for saving results",
+                    "options.hpp", saverep, saverep, sizeof(saverep), NULL);
                 CHKERRQ(ierr);
                 ierr = PetscOptionsEnd();
                 CHKERRQ(ierr);
