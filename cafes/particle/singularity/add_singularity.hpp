@@ -37,6 +37,8 @@
 #include <petsc/vec.hpp>
 #include <particle/singularity/truncation.hpp>
 
+#include <particle/singularity/extension.hpp>
+
 #include <petsc.h>
 #include <iostream>
 #include <sstream>
@@ -52,6 +54,7 @@ namespace cafes
 {
   namespace singularity
   {
+
     #undef __FUNCT__
     #define __FUNCT__ "computesingularST"
     template<typename Shape>
@@ -97,7 +100,6 @@ namespace cafes
 
                   auto gradUsing = sing.get_grad_u_sing(pts);
                   auto psing = sing.get_p_sing(pts);
-                  //auto chix = sing.get_x_truncation(pts);
                   
                   for (std::size_t je=0; je<bfunc.size(); ++je)
                   {
@@ -106,295 +108,13 @@ namespace cafes
                     for (std::size_t d1=0; d1<Dimensions; ++d1)
                     {
                       for (std::size_t d2=0; d2<Dimensions; ++d2)
-                        u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2];//*chix;
-                      u[d1] += coef*psing*bfunc[je][d1];//*chix;
+                        u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2];
+                      u[d1] += coef*psing*bfunc[je][d1];
                     }
                   }
                 }
               }
 
-              // // Test with cut function
-              // // \bar{u}^{sing}(x,y) = u^{sing}(X,Y) \chi(r)
-              // // with :
-              // // X(\theta) = R\cos(\theta)
-              // // Y(\theta) = R \sin(\theta)
-              // // \theta(x,y) = atan2(y - y_part, x - x_part)
-              // // r(x,y) = \sqrt{ (x - x_part)^2 + (y - y_part)^2 }
-              
-              // // Inside P1
-              // else if (p1.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, \theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p1.center_[0])*(pts[0] - p1.center_[0]) + (pts[1] - p1.center_[1])*(pts[1] - p1.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x radius
-              //     position_type dx_radius = { (pts[0] - p1.center_[0])/scale_r, (pts[1] - p1.center_[1])/scale_r};
-
-              //     // \partial_x theta
-              //     position_type dx_theta = { -1.*(pts[1] - p1.center_[1])/scale_theta, (pts[0] - p1.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p1.shape_factors_[0]*sin(pts_polar[1]), p1.shape_factors_[0]*cos(pts_polar[1]) };
-            
-              //     // Finite element function
-              //     auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-
-              //     // Get using, psing and there partial derivatives and \chi
-              //     auto gradUsing = sing.get_grad_u_sing(pts_border);
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get truncature functions
-              //     double a = p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.25*p1.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.25*p1.shape_factors_[0]);
-              //     position_type dxchir = {drchir*dx_radius[0], drchir*dx_radius[1]};
-              //     position_type dxchix = { -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a, eps), 0.};
-
-              //     // Extended gradUsing
-              //     std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended{};
-              //     gradUsingExtended[0][0] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[0][1] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[1];
-              //     gradUsingExtended[1][0] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[1][1] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[1];
-                  
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-
-              //       for (std::size_t d1=0; d1<Dimensions; ++d1)
-              //       {
-              //         for (std::size_t d2=0; d2<Dimensions; ++d2)
-              //           u[d1] -= coef*(gradUsingExtended[d1][d2]*chir*chix + Using[d1]*dxchir[d2]*chix + Using[d1]*chir*dxchix[d2])*bfunc[je][d2];//*chix;
-              //         u[d1] += coef*psing*bfunc[je][d1]*chir*chix;
-              //       }
-              //     }
-              //   }
-              // } // End Inside P1
-              
-              // // Inside P2
-              // else if (p2.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, \theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p2.center_[0])*(pts[0] - p2.center_[0]) + (pts[1] - p2.center_[1])*(pts[1] - p2.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x radius
-              //     position_type dx_radius = { (pts[0] - p2.center_[0])/scale_r, (pts[1] - p2.center_[1])/scale_r};
-
-              //     // \partial_x theta
-              //     position_type dx_theta = { -1.*(pts[1] - p2.center_[1])/scale_theta, (pts[0] - p2.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p2.shape_factors_[0]*sin(pts_polar[1]), p2.shape_factors_[0]*cos(pts_polar[1]) };
-            
-              //     // Finite element function
-              //     auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-
-              //     // Get using, psing and there partial derivatives and \chi
-              //     auto gradUsing = sing.get_grad_u_sing(pts_border);
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get truncature functions
-              //     double a = p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     position_type dxchix = { -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a, eps), 0.};
-                  
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-
-              //       for (std::size_t d1=0; d1<Dimensions; ++d1)
-              //       {
-              //         for (std::size_t d2=0; d2<Dimensions; ++d2)
-              //           u[d1] -= coef*( (gradUsing[d1][0]*dtheta_pts_border[0]*dx_theta[d2] +  gradUsing[d1][1]*dtheta_pts_border[1]*dx_theta[d2])*chir*chix
-              //                     + Using[d1]*drchir*dx_radius[d2]*chix + Using[d1]*chir*dxchix[d2] ) * bfunc[je][d2];
-              //         //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2];//*chix;
-              //         u[d1] += coef*psing*bfunc[je][d1]*chir*chix;//*chix;
-              //       }
-              //     }
-              //   }
-              // } // End Inside P2
-
-              // // Test with cut function without oscillation
-
-              // // bar{u}(x,y) = u( X(theta(x,y)), Y(theta(x,y))) * chir(r(x,y)) * chix(x)
-              // // X(theta) = R * cos(theta(x,y))
-              // // Y(theta) = R * sin(theta(x,y))
-              // // theta(x,y) = atan2(y-yi,x-xi)
-
-              // // dx bar{u} = dX u * dtheta X * dx theta + dY u * dtheta Y * dx theta
-              // // dy bar{u} = dX u * dtheta X * dy theta + dY u * dtheta Y * dy theta
-
-              // // dtheta X = -R * sin(theta)
-              // // dtheta Y =  R * cos(theta)
-
-              // // dx theta = - y/((x-xi)^2 + (y-yi)^2)
-              // // dy theta = x/((x-xi)^2 + (y-yi)^2)
-
-              // // dx chir = dr chir * dx r
-              // // dy chir = dr chir * dy r
-
-              // // dx r = (x-xi)/r
-              // // dy r = (y-yi)/r
-
-              // // Inside P1
-              // else if (p1.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p1.center_[0])*(pts[0] - p1.center_[0]) + (pts[1] - p1.center_[1])*(pts[1] - p1.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x (r, \theta)
-              //     position_type dx_pts_polar = { (pts[0] - p1.center_[0])/scale_r, -1.*(pts[1] - p1.center_[1])/scale_theta};
-
-              //     // \partial_y (r, theta)
-              //     position_type dy_pts_polar = { (pts[1] - p1.center_[1])/scale_r, (pts[0] - p1.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p1.shape_factors_[0]*sin(pts_polar[1]), p1.shape_factors_[0]*cos(pts_polar[1]) };
-
-              //     // Get using, psing and its derivatives
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto gradusing = sing.get_grad_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get test function
-              //     auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-
-              //     // Get truncature functions
-              //     double a = p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a-eps, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-              //     auto dxchix = -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a-eps, eps);
-
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-
-              //       for (std::size_t d1=0; d1<Dimensions; ++d1)
-              //       {
-              //         // u[d1] -= (coef*gradUsing[d1][0]*chi*chix + Using[d1]*(pts[0]-p1.center_[0])/scale*drchi*chix + Using[d1]*chi*dxchix)*bfunc[je][0]; 
-              //         // u[d1] -= (coef*gradUsing[d1][1]*chi*chix + Using[d1]*(pts[1]-p1.center_[1])/scale*drchi*chix)*bfunc[je][1];
-              //         // for (std::size_t d2=0; d2<Dimensions; ++d2)
-              //         //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-              //         u[d1] += coef*psing*bfunc[je][d1]*chir;
-              //       }
-              //     }
-              //   }
-              // }
-
-              // // Inside P2
-              // else if (p2.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p2.center_[0])*(pts[0] - p2.center_[0]) + (pts[1] - p2.center_[1])*(pts[1] - p2.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x (r, \theta)
-              //     position_type dx_pts_polar = { (pts[0] - p2.center_[0])/scale_r, -1.*(pts[1] - p2.center_[1])/scale_theta};
-
-              //     // \partial_y (r, theta)
-              //     position_type dy_pts_polar = { (pts[1] - p2.center_[1])/scale_r, (pts[0] - p2.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p2.shape_factors_[0]*sin(pts_polar[1]), p2.shape_factors_[0]*cos(pts_polar[1]) };
-
-              //     // Get using, psing and its derivatives
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto gradusing = sing.get_grad_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get test function
-              //     auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-
-              //     // Get truncature functions
-              //     double a = p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.5*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a-eps, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.5*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     auto dxchix = -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a-eps, eps);
-
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-
-              //       for (std::size_t d1=0; d1<Dimensions; ++d1)
-              //       {
-              //         // u[d1] -= (coef*gradUsing[d1][0]*chi*chix + Using[d1]*(pts[0]-p1.center_[0])/scale*drchi*chix + Using[d1]*chi*dxchix)*bfunc[je][0]; 
-              //         // u[d1] -= (coef*gradUsing[d1][1]*chi*chix + Using[d1]*(pts[1]-p1.center_[1])/scale*drchi*chix)*bfunc[je][1];
-              //         // for (std::size_t d2=0; d2<Dimensions; ++d2)
-              //         //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-              //         u[d1] += coef*psing*bfunc[je][d1]*chir;
-              //       }
-              //     }
-              //   }
-              // }
-
-              
-              // Test with cut function
               // Inside P1
               else if (p1.contains(pts))
               {
@@ -402,38 +122,7 @@ namespace cafes
 
                 if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
                 {
-                  position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-                  double scale = (pts_polar[0] < 1.e-14) ? 1. : pts_polar[0];
-                  double scalechix = (abs(pts[0]-p1.center_[0])<1e-14) ? 1. : 2*abs(pts[0]-p1.center_[0]);
-                  // position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-                  position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-                  double a = .5*p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]));
-                  double eps = 0.5*a*a;
-
-                  auto Using = sing.get_u_sing(pts);
-                  auto gradUsing = sing.get_grad_u_sing(pts);
-                  auto psing = sing.get_p_sing(pts);
-                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-                  auto chix = 1.-cafes::singularity::chiTrunc(pts[0]-p1.center_[0], a*a, eps);
-                  auto drchi = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-                  auto dxchix = -1.*cafes::singularity::dchiTrunc(pts[0]-p1.center_[0], a*a, eps);
-                  // auto chi = cafes::singularity::singTrunc(pts_polar[0]/p1.shape_factors_[0]);
-                  //auto chix = sing.get_x_truncation(pts_border);
-                  
-                  for (std::size_t je=0; je<bfunc.size(); ++je)
-                  {
-                    auto u = sol.at(ielem[je]);
-
-                    for (std::size_t d1=0; d1<Dimensions; ++d1)
-                    {
-                      u[d1] -= coef*(gradUsing[d1][0]*chix + Using[d1]*dxchix)*bfunc[je][0]; 
-                      u[d1] -= coef*(gradUsing[d1][1]*chix )*bfunc[je][1];
-                      // for (std::size_t d2=0; d2<Dimensions; ++d2)
-                      //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-                      u[d1] += coef*psing*bfunc[je][d1]*chix;
-                    }
-                  }
+                  extension_in_particle(sing, p1, sol, pts, ielem, hu,  hs, is,  js, coef);
                 }
               }
               // Inside P2
@@ -443,36 +132,7 @@ namespace cafes
 
                 if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
                 {
-                  position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-                  double scale = (pts_polar[0] < 1.e-14) ? 1. : pts_polar[0];
-                  // position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-                  position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P2_integration_grad(pts_loc, hu);
-                  double a = .5*p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]));
-                  double eps = 0.5*a*a;
-
-                  auto Using = sing.get_u_sing(pts);
-                  auto gradUsing = sing.get_grad_u_sing(pts);
-                  auto psing = sing.get_p_sing(pts);
-                  // auto chi = cafes::singularity::singTrunc(pts_polar[0]/p2.shape_factors_[0]);
-                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.1*p2.shape_factors_[0]);
-                  auto chix = 1.-cafes::singularity::chiTrunc(pts[0]-p2.center_[0], a*a, eps);
-                  auto drchi = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.1*p2.shape_factors_[0]);
-                  auto dxchix = -1.*cafes::singularity::dchiTrunc(pts[0]-p2.center_[0], a*a, eps);
-                  
-                  for (std::size_t je=0; je<bfunc.size(); ++je)
-                  {
-                    auto u = sol.at(ielem[je]);
-
-                    for (std::size_t d1=0; d1<Dimensions; ++d1)
-                    {
-                      u[d1] -= coef*(gradUsing[d1][0]*chix + Using[d1]*dxchix)*bfunc[je][0]; 
-                      u[d1] -= coef*(gradUsing[d1][1]*chix )*bfunc[je][1];
-                      // for (std::size_t d2=0; d2<Dimensions; ++d2)
-                      //   u[d1] -= coef*gradUsing[d1][d2]*bfunc[je][d2]*chi;//*chix;
-                      u[d1] += coef*psing*bfunc[je][d1]*chix;
-                    }
-                  }
+                  extension_in_particle(sing, p2, sol, pts, ielem, hu,  hs, is,  js, coef);
                 }
               }
             }
@@ -523,24 +183,18 @@ namespace cafes
                   position_type pts_loc = {is*hs[0], js*hs[1]};
 
                   auto bfunc = fem::P1_integration_sing(pts_loc, h);
-                  //auto chix = sing.get_x_truncation(pts);
 
                   auto gradUsing = sing.get_grad_u_sing(pts);
                   auto psing = sing.get_p_sing(pts);
-                  //auto chix = sing.get_x_truncation(pts);
-                  //auto gradUsing = sing.get_grad_u_sing(pts);
                   
                   for (std::size_t je=0; je<bfunc.size(); ++je)
                   {
                     auto u = sol.at(ielem[je]);
-                    u[0] += coef*(gradUsing[0][0] + gradUsing[1][1])*bfunc[je];//*chix;
+                    u[0] += coef*(gradUsing[0][0] + gradUsing[1][1])*bfunc[je];
                     u[0] += coef*1.e-6*psing*bfunc[je];
-                    //u[0] -= coef*(gradUsing[0][0] + gradUsing[Dimensions][Dimensions])*bfunc[je];
                   }
                 }
               }
-
-              // Test whith cut function
 
               // Inside P1
               if (p1.contains(pts))
@@ -549,28 +203,7 @@ namespace cafes
 
                 if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
                 {
-                  position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-                  double scale = (pts_polar[0] < 1.e-14) ? 1. : pts_polar[0];
-                  position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P1_integration_sing(pts_loc, h);
-                  double a = .5*p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]));
-                  double eps = 0.5*a*a;
-
-                  auto Using = sing.get_u_sing(pts);
-                  auto gradUsing = sing.get_grad_u_sing(pts);
-                  auto psing = sing.get_p_sing(pts);
-                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-                  auto chix = 1.-cafes::singularity::chiTrunc(pts[0]-p1.center_[0], a*a, eps);
-                  auto drchi = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.1*p1.shape_factors_[0]);
-                  auto dxchix = -1.*cafes::singularity::dchiTrunc(pts[0]-p1.center_[0], a*a, eps);
-                  
-                  for (std::size_t je=0; je<bfunc.size(); ++je)
-                  {
-                    auto u = sol.at(ielem[je]);
-                    u[0] += coef*(gradUsing[0][0]*chix + Using[0]*dxchix)*bfunc[je]; 
-                    u[0] += coef*(gradUsing[1][1]*chix )*bfunc[je];
-                    u[0] += coef*1.e-6*psing*bfunc[je]*chix;
-                  }
+                  extension_in_particle(sing, p1, sol, pts, ielem, h,  hs, is,  js, coef, "pressure");
                 }
               }
 
@@ -581,186 +214,9 @@ namespace cafes
 
                 if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
                 {
-                  position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-                  double scale = (pts_polar[0] < 1.e-14) ? 1. : pts_polar[0];
-                  position_type pts_loc = {is*hs[0], js*hs[1]};
-                  auto bfunc = fem::P1_integration_sing(pts_loc, h);
-                  double a = .5*p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]));
-                  double eps = 0.5*a*a;
-
-                  auto Using = sing.get_u_sing(pts);
-                  auto gradUsing = sing.get_grad_u_sing(pts);
-                  auto psing = sing.get_p_sing(pts);
-                  auto chi = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.1*p2.shape_factors_[0]);
-                  auto chix = 1.-cafes::singularity::chiTrunc(pts[0]-p2.center_[0], a*a, eps);
-                  auto drchi = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.1*p2.shape_factors_[0]);
-                  auto dxchix = -1.*cafes::singularity::dchiTrunc(pts[0]-p2.center_[0], a*a, eps);
-                  
-                  for (std::size_t je=0; je<bfunc.size(); ++je)
-                  {
-                    auto u = sol.at(ielem[je]);
-                    u[0] += coef*(gradUsing[0][0]*chix +  Using[0]*dxchix)*bfunc[je]; 
-                    u[0] += coef*(gradUsing[1][1]*chix )*bfunc[je];
-                    u[0] += coef*1.e-6*psing*bfunc[je]*chix;
-                  }
+                  extension_in_particle(sing, p2, sol, pts, ielem, h,  hs, is,  js, coef, "pressure");
                 }
               }
-              
-              // // Test with cut function
-              // // \bar{u}^{sing}(x,y) = u^{sing}(X,Y) \chi(r)
-              // // with :
-              // // X(\theta) = R\cos(\theta)
-              // // Y(\theta) = R \sin(\theta)
-              // // \theta(x,y) = atan2(y - y_part, x - x_part)
-              // // r(x,y) = \sqrt{ (x - x_part)^2 + (y - y_part)^2 }
-              
-              // // Inside P1
-              // else if (p1.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, \theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p1.center_[0])*(pts[0] - p1.center_[0]) + (pts[1] - p1.center_[1])*(pts[1] - p1.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x radius
-              //     position_type dx_radius = { (pts[0] - p1.center_[0])/scale_r, (pts[1] - p1.center_[1])/scale_r};
-
-              //     // \partial_x theta
-              //     position_type dx_theta = { -1.*(pts[1] - p1.center_[1])/scale_theta, (pts[0] - p1.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p1.shape_factors_[0]*sin(pts_polar[1]), p1.shape_factors_[0]*cos(pts_polar[1]) };
-            
-              //     // Finite element function
-              //     auto bfunc = fem::P1_integration_sing(pts_loc, h);
-
-              //     // Get using, psing and there partial derivatives and \chi
-              //     auto gradUsing = sing.get_grad_u_sing(pts_border);
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get truncature functions
-              //     double a = p1.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p1.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.25*p1.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p1.shape_factors_[0],0.25*p1.shape_factors_[0]);
-              //     position_type dxchir = {drchir*dx_radius[0], drchir*dx_radius[1]};
-              //     position_type dxchix = { -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p1.center_[0])), a, eps), 0.};
-
-              //     // Extended gradUsing
-              //     std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended{};
-              //     gradUsingExtended[0][0] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[0][1] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[1];
-              //     gradUsingExtended[1][0] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[1][1] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[1];
-                  
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-              //         // u[d1] -= coef*( (gradUsing[d1][0]*dtheta_pts_border[0]*dx_theta[d2] +  gradUsing[d1][1]*dtheta_pts_border[1]*dx_theta[d2])*chir*chix
-              //         //           + Using[d1]*drchir*dx_radius[d2]*chix + Using[d1]*chir*dxchix[d2] ) * bfunc[je][d2];
-              //         u[0] += coef*(gradUsingExtended[0][0]*chir*chix + Using[0]*dxchir[0]*chix + Using[0]*chir*dxchix[0])*bfunc[je];
-              //         u[0] += coef*(gradUsingExtended[1][1]*chir*chix + Using[1]*dxchir[1]*chix + Using[1]*chir*dxchix[1])*bfunc[je];
-              //         u[0] += coef*1.e-6*psing*chir*chix*bfunc[je];
-              //       // u[d1] += coef*psing*bfunc[je][d1]*chir*chix;//*chix;
-              //     }
-                  
-              //     // for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     // {
-              //     //   auto u = sol.at(ielem[je]);
-              //     //   u[0] +=coef*( (gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[d2] +  gradUsing[d1][1]*dtheta_pts_border[1]*dx_theta[d2])*chir*chix
-              //     //                 + Using[d1]*drchir*dx_radius[d2]*chix + Using[d1]*chir*dxchix[d2] ) * bfunc[je];
-              //     //   // u[0] += coef*(
-              //     //   //   // \partial_x u_x^{sing}(X,Y) * \chi(r)
-              //     //   //   (dx_pts_polar[1]*dtheta_pts_border[0]*gradUsing[0][0] + dx_pts_polar[1]*dtheta_pts_border[1]*gradUsing[1][0])*chi
-              //     //   //   // \partial_X u_y^{sing}(X,Y) * \chi(r)
-              //     //   //   + (dy_pts_polar[1]*dtheta_pts_border[0]*gradUsing[0][1] + dy_pts_polar[1]*dtheta_pts_border[1]*gradUsing[1][1])*chi
-              //     //   //   // \u_x^{sing}(X,Y) * \partial_x \chi(r)
-              //     //   //   + Using[0]*dx_pts_polar[0]*drChi
-              //     //   //   // \u_y^{sing}(X,Y) * \partial_y \chi(r)
-              //     //   //   + Using[1]*dy_pts_polar[0]*drChi
-              //     //   // )*bfunc[je];
-              //     // }
-              //   }
-              // } // End Inside P1
-              
-              // // Inside P2
-              // else if (p2.contains(pts))
-              // {
-              //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-              //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-              //   {
-              //     position_type pts_loc = {is*hs[0], js*hs[1]};
-
-              //     // (r, \theta)
-              //     position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-
-              //     // (X, Y)
-              //     position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-
-              //     // Scale for \partial (r, \theta)
-              //     double scale_theta = ( (pts[0] - p2.center_[0])*(pts[0] - p2.center_[0]) + (pts[1] - p2.center_[1])*(pts[1] - p2.center_[1]) );
-              //     if (scale_theta < 1e-14) { scale_theta = 1.;}
-              //     double scale_r = sqrt(scale_theta);
-
-              //     // \partial_x radius
-              //     position_type dx_radius = { (pts[0] - p2.center_[0])/scale_r, (pts[1] - p2.center_[1])/scale_r};
-
-              //     // \partial_x theta
-              //     position_type dx_theta = { -1.*(pts[1] - p2.center_[1])/scale_theta, (pts[0] - p2.center_[0])/scale_theta};
-
-              //     // \partial_\theta (X, Y)
-              //     position_type dtheta_pts_border = { -1.*p2.shape_factors_[0]*sin(pts_polar[1]), p2.shape_factors_[0]*cos(pts_polar[1]) };
-            
-              //     // Finite element function
-              //     auto bfunc = fem::P1_integration_sing(pts_loc, h);
-
-              //     // Get using, psing and there partial derivatives and \chi
-              //     auto gradUsing = sing.get_grad_u_sing(pts_border);
-              //     auto Using = sing.get_u_sing(pts_border);
-              //     auto psing = sing.get_p_sing(pts_border);
-
-              //     // Get truncature functions
-              //     double a = p2.shape_factors_[0]*cos(asin(sing.cutoff_dist_/p2.shape_factors_[0]));
-              //     double eps = 0.25*a;
-              //     auto chir = 1.-cafes::singularity::chiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     auto chix = 1.-cafes::singularity::chiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a, eps);
-              //     auto drchir = -1.*cafes::singularity::dchiTrunc(sqrt(pts_polar[0]),.75*p2.shape_factors_[0],0.25*p2.shape_factors_[0]);
-              //     position_type dxchir = {drchir*dx_radius[0], drchir*dx_radius[1]};
-              //     position_type dxchix = { -1.*cafes::singularity::dchiTrunc(sqrt(abs(pts[0]-p2.center_[0])), a, eps), 0.};
-
-              //     // Extended gradUsing
-              //     std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended{};
-              //     gradUsingExtended[0][0] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[0][1] = gradUsing[0][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[0][1]*dtheta_pts_border[1]*dx_theta[1];
-              //     gradUsingExtended[1][0] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[0] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[0];
-              //     gradUsingExtended[1][1] = gradUsing[1][0]*dtheta_pts_border[0]*dx_theta[1] + gradUsing[1][1]*dtheta_pts_border[1]*dx_theta[1];
-                  
-              //     for (std::size_t je=0; je<bfunc.size(); ++je)
-              //     {
-              //       auto u = sol.at(ielem[je]);
-              //         // u[d1] -= coef*( (gradUsing[d1][0]*dtheta_pts_border[0]*dx_theta[d2] +  gradUsing[d1][1]*dtheta_pts_border[1]*dx_theta[d2])*chir*chix
-              //         //           + Using[d1]*drchir*dx_radius[d2]*chix + Using[d1]*chir*dxchix[d2] ) * bfunc[je][d2];
-              //         u[0] += coef*(gradUsingExtended[0][0]*chir*chix + Using[0]*dxchir[0]*chix + Using[0]*chir*dxchix[0])*bfunc[je];
-              //         u[0] += coef*(gradUsingExtended[1][1]*chir*chix + Using[1]*dxchir[1]*chix + Using[1]*chir*dxchix[1])*bfunc[je];
-              //         u[0] += coef*1.e-6*psing*chir*chix*bfunc[je];
-              //     }
-              //   }
-              // } // End Inside P2
             }
           }
         }
@@ -1188,7 +644,7 @@ namespace cafes
     #undef __FUNCT__
     #define __FUNCT__ "add_singularity_to_ureg"
     template<std::size_t Dimensions, class Particles>
-    PetscErrorCode add_singularity_to_ureg(DM dm, std::array<double, Dimensions> h, Vec vsol, const Particles& particles)
+    PetscErrorCode add_singularity_to_ureg(DM dm, std::array<double, Dimensions> h, Vec vsol, const Particles& particles, bool truncature=1)
     {
       PetscErrorCode ierr;
       PetscFunctionBeginUser;
@@ -1231,7 +687,7 @@ namespace cafes
                 {
                   position_type_i pts_i = {i, j};
                   position_type pts = {i*h[0], j*h[1]};
-                  if (!p1.contains(pts) and !p2.contains(pts))
+                  if ((!p1.contains(pts) and !p2.contains(pts)) or !truncature)
                   {
                     auto u_sing = sing.get_u_sing(pts);
                     auto u = sol_u.at_g(pts_i);
@@ -1242,58 +698,30 @@ namespace cafes
                     }
                     //std::cout << "u new" << u[0] << " " << u[1] << "\n";
                   }
-                  
-                  // // Inside P1 (put imposed velocity)
-                  // else if (p1.contains(pts))
-                  // {
-                  //   auto u = sol_u.at_g(pts_i);
-                  //   for (std::size_t d=0; d<Dimensions; ++d)
-                  //   {
-                  //     u[d] = p1.velocity_[d];
-                  //   }
-                      
-                  // } // End Inside P1
 
-                  // // Inside P1
-                  // else if (p1.contains(pts))
-                  // {
-                  //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
+                  if (p1.contains(pts) and truncature)
+                  {
+                    std::array<double, Dimensions> UsingExtended;
+                    double psingExtended;
+                    get_field_extension_with_chix_chir(sing, p1, pts, UsingExtended, psingExtended);
+                    auto u = sol_u.at_g(pts_i);
+                    for (std::size_t d=0; d<Dimensions; ++d)
+                    {
+                      u[d] += UsingExtended[d];
+                    }
+                  }
 
-                  //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-                  //   {
-                  //     position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-                  //     position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-
-                  //     auto Using = sing.get_u_sing(pts_border);
-                  //     auto chi = cafes::singularity::alphaTrunc(pts_polar[0]/p1.shape_factors_[0]);
-                  //     auto u = sol_u.at_g(pts_i);
-                  //     for (std::size_t d=0; d<Dimensions; ++d)
-                  //       u[d] += Using[d]*chi;
-                  //   }
-                  // }
-                  // // Inside P2
-                  // else if (p2.contains(pts))
-                  // {
-                  //   auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-                  //   if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-                  //   {
-                  //     position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-                  //     position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-
-                  //     auto Using = sing.get_u_sing(pts_border);
-                  //     auto chi = cafes::singularity::alphaTrunc(pts_polar[0]/p2.shape_factors_[0]);
-                  //     auto u = sol_u.at_g(pts_i);
-                  //     for (std::size_t d=0; d<Dimensions; ++d)
-                  //       u[d] += Using[d]*chi;
-                  //   }
-                  // }
-                  // else if (p1.contains(pts))
-                  // {
-                  //   auto u = sol_u.at_g(pts_i);
-                  //   u[0] += p1.velocity_[0];
-                  //   u[1] += p1.velocity_[1];
-                  // }
+                  if (p2.contains(pts) and truncature)
+                  {
+                    std::array<double, Dimensions> UsingExtended;
+                    double psingExtended;
+                    get_field_extension_with_chix_chir(sing, p2, pts, UsingExtended, psingExtended);
+                    auto u = sol_u.at_g(pts_i);
+                    for (std::size_t d=0; d<Dimensions; ++d)
+                    {
+                      u[d] += UsingExtended[d];
+                    }
+                  }
                 }
               }
             }
@@ -1308,47 +736,30 @@ namespace cafes
                 {
                   position_type_i pts_i = {i, j};
                   position_type pts = {i*hp[0], j*hp[1]};
-                  if (!p1.contains(pts) and !p2.contains(pts))
+                  if ((!p1.contains(pts) and !p2.contains(pts)) or !truncature)
                   {
-                    auto p_sing = sing_p.get_p_sing(pts);
-                    auto p = sol_p.at_g(pts_i);
-                    p[0] += p_sing;
-                  }
-
-                  // Inside P1
-                  else if (p1.contains(pts))
-                  {
-                    auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-                    if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-                    {
-                      position_type pts_polar = {sqrt( (pts[0]- p1.center_[0])*(pts[0]- p1.center_[0]) + (pts[1]- p1.center_[1])*(pts[1]- p1.center_[1]) ), atan2(pts[1]- p1.center_[1], pts[0]- p1.center_[0])};
-                      position_type pts_border = {p1.center_[0] + p1.shape_factors_[0]*cos(pts_polar[1]), p1.center_[1] + p1.shape_factors_[0]*sin(pts_polar[1])};
-
-                      auto psing = sing_p.get_p_sing(pts_border);
-                      auto chi = cafes::singularity::singTrunc(pts_polar[0]/p1.shape_factors_[0]);
+                      auto p_sing = sing_p.get_p_sing(pts);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += psing*chi;
-                    }
+                      p[0] += p_sing;
                   }
 
-                  // Inside P2
-                  else if (p2.contains(pts))
+                  if (p1.contains(pts) and truncature)
                   {
-                    auto pos_ref_part = sing.get_pos_in_part_ref(pts);
-
-                    if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
-                    {
-                      position_type pts_polar = {sqrt( (pts[0]- p2.center_[0])*(pts[0]- p2.center_[0]) + (pts[1]- p2.center_[1])*(pts[1]- p2.center_[1]) ), atan2(pts[1]- p2.center_[1], pts[0]- p2.center_[0])};
-                      position_type pts_border = {p2.center_[0] + p2.shape_factors_[0]*cos(pts_polar[1]), p2.center_[1] + p2.shape_factors_[0]*sin(pts_polar[1])};
-
-                      auto psing = sing_p.get_p_sing(pts_border);
-                      auto chi = cafes::singularity::singTrunc(pts_polar[0]/p2.shape_factors_[0]);
+                      std::array<double, Dimensions> UsingExtended;
+                      double psingExtended;
+                      get_field_extension_with_chix_chir(sing, p1, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += psing*chi;
-                    }
+                      p[0] += psingExtended;
                   }
 
+                  if (p2.contains(pts) and truncature) 
+                  {
+                      std::array<double, Dimensions> UsingExtended;
+                      double psingExtended;
+                      get_field_extension_with_chix_chir(sing, p2, pts, UsingExtended, psingExtended);
+                      auto p = sol_p.at_g(pts_i);
+                      p[0] += psingExtended;
+                  }
                 }
               }
             }
