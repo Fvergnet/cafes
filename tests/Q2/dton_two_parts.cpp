@@ -4,6 +4,9 @@
 #include <particle/singularity/add_singularity.hpp>
 #include "fenicsfunction.hpp"
 
+#include <iostream>
+#include <fstream>
+
 void zeros(const PetscReal x[], PetscScalar *u)
 {
     *u = 0.;
@@ -42,12 +45,14 @@ int main(int argc, char **argv)
 
     auto st = cafes::make_stokes<dim>(bc, rhs);
     int const mx = st.opt.mx[0] - 1;
+    bool singularity = st.opt.compute_singularity;
 
     // auto c = cafes::myparticle({.5,.5}, {1.,0.}, 0.1);
     // c.discretize_surface(10);
 
     double R1 = .1;
-    double distance = .05;
+    double distance = st.opt.distance;
+    std::string saverep = st.opt.saverep;
 
     auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
     auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
@@ -68,25 +73,35 @@ int main(int argc, char **argv)
     ierr = s.solve();
     CHKERRQ(ierr);
 
+    std::ofstream myfile;
+    std::string filename = saverep+"/simulation_infos_compute_sing_is_"+std::to_string(singularity);
+    filename.append("_distance_is_radius_over_");
+    filename.append(std::to_string(int(std::round(R1/distance))));
+    filename.append("_mx_"+std::to_string(mx)+".txt");
+    myfile.open(filename);
+    myfile << R1 << " " << distance << " " << R1/distance << " " << singularity << " " << mx << " " << s.kspiter << "\n";
+    myfile.close();
+
     // ff.loadmesh("test.txt");
     // auto test = mesh.interpolate(ctx, st.sol);
 
     // cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
-
-    std::string stout = "two_parts_solution_with_sing_";
+    
+    std::string stout = "two_parts_solution_compute_sing_is_"+std::to_string(singularity);
     // std::string stout = "rhs_sing_";
-    stout.append(std::to_string(mx));
-    stout.append("_distance_");
-    stout.append(std::to_string(distance));
+    stout.append("_distance_is_radius_over_");
+    stout.append(std::to_string(int(std::round(R1/distance))));
+    stout.append("_mx_"+std::to_string(mx));
     const char * stw = stout.c_str();
-    ierr = cafes::io::save_hdf5("Resultats", stw, st.sol, st.ctx->dm,
+    ierr = cafes::io::save_hdf5(saverep.c_str(), stw, st.sol, st.ctx->dm,
                               st.ctx->h);
     CHKERRQ(ierr);
 
-    auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], s.ctx->compute_singularity);
-    auto ff = FenicsFunction("reference_mesh_velocity.txt", "reference_mesh_pressure.txt");
+    auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], singularity);
+    std::string refmeshrep = "ffppreferences/reference_mesh_distance_is_radius_over_"+std::to_string(int(std::round(R1/distance)));
+    auto ff = FenicsFunction(refmeshrep+"_velocity.txt", refmeshrep+"_pressure.txt");
     ff.interpolate(ctx, st.sol);
-    ff.save(stout);
+    ff.save(saverep +"/"+ stout);
 
     ierr = PetscFinalize();
     CHKERRQ(ierr);

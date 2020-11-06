@@ -3,7 +3,7 @@
 exec=../../build/tests/dton_two_parts
 nproc=1
 
-for i in '31' '35' '41' '45' '51' '55' '61' '65' '71'
+for i in '61'
 do
 $exec \
     -stokes_ksp_type preonly \
@@ -12,8 +12,10 @@ $exec \
     -dton_ksp_rtol 1e-5 \
     -dton_ksp_type gmres \
     -assembling \
-    -compute_singularity \
+    -compute_singularity 1\
     -order 2 \
+    -distance 0.025 \
     -mx $i \
-    -my $i 
+    -my $i \
+    -saverep "extension_with_chix"
 done
