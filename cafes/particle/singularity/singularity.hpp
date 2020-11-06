@@ -101,7 +101,7 @@ namespace cafes
         //auto tmp = alpha*std::sqrt(contact_length_/K_);
         //cutoff_dist_ = (tmp < minr)? tmp : minr;
         //cutoff_dist_ = (cutoff_dist_ <= std::sqrt(2)*h)? std::sqrt(2)*h : cutoff_dist_; 
-        cutoff_dist_ = 0.75*minr; 
+        cutoff_dist_ = .9*minr; 
         std::cout << "cutoff_dist " << cutoff_dist_ << "\n";
         param_ = .5*cutoff_dist_*cutoff_dist_;
         //is_singularity_ = contact_length_<threshold_*cutoff_dist_;
