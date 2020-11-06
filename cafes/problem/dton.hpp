@@ -608,7 +608,7 @@ static PetscErrorCode convergeTest2(KSP ksp, PetscInt it, PetscReal rnorm, KSPCo
                 //     ierr = cafes::singularity::add_singularity_to_ureg(ctx->problem.ctx->dm, ctx->problem.ctx->h, ctx->problem.sol, ctx->particles);
                 // }
                 
-                // ierr = KSPGetIterationNumber(ksp, &kspiter);CHKERRQ(ierr);
+                ierr = KSPGetIterationNumber(ksp, &kspiter);CHKERRQ(ierr);
                 // ierr = KSPGetResidualNorm(ksp, &kspresnorm);CHKERRQ(ierr);
 
                 // if (default_flags_)
