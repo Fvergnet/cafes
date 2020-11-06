@@ -81,3 +81,6 @@
 
 ADD_EXECUTABLE(dton_two_parts Q2/dton_two_parts.cpp)
 TARGET_LINK_LIBRARIES(dton_two_parts ${PETSC_LIBRARIES} ${MPI_LIBRARIES})
+
+ADD_EXECUTABLE(plot_singular_fields Q2/plot_singular_fields.cpp)
+TARGET_LINK_LIBRARIES(plot_singular_fields ${PETSC_LIBRARIES} ${MPI_LIBRARIES})
