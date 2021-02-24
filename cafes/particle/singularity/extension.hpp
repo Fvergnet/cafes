@@ -197,6 +197,41 @@ namespace cafes
     }
 
     #undef __FUNCT__
+    #define __FUNCT__ "get_Babic_singularity_extension"
+    template<typename Shape, std::size_t Dimensions, typename gradtype>
+    PetscErrorCode get_singularity_extension_with_chir(singularity<Shape, 2> sing, 
+                                     particle<Shape> const& p1,
+                                     geometry::position<double, Dimensions> pts,
+                                     gradtype& gradUsingExtended,
+                                     double& psingExtended)
+    {
+        PetscErrorCode ierr;
+        PetscFunctionBeginUser;
+
+        double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
+        double dx_radius = (std::abs(pts[0]-p1.center_[0])<=1e-14) ? 0. : (pts[0] - p1.center_[0])/radius;
+        double dy_radius = (std::abs(pts[1]-p1.center_[1])<=1e-14) ? 0. : (pts[1] - p1.center_[1])/radius;
+        
+        double eps = p1.shape_factors_[0]/4.;
+        double a = p1.shape_factors_[0] - 2*eps;
+
+        auto Using = sing.get_u_sing(pts);
+        auto gradUsing = sing.get_grad_u_sing(pts);
+        auto psing = sing.get_p_sing(pts);
+        auto chir = 1.-cafes::singularity::chiTrunc(radius, a*a, eps*eps);
+        auto drchir = -1.*cafes::singularity::dchiTrunc(radius, a*a, eps*eps);
+
+        gradUsingExtended[0][0] = gradUsing[0][0]*chir + Using[0]*drchir*dx_radius;
+        gradUsingExtended[0][1] = gradUsing[0][1]*chir + Using[0]*drchir*dy_radius;
+        gradUsingExtended[1][0] = gradUsing[1][0]*chir + Using[1]*drchir*dx_radius;
+        gradUsingExtended[1][1] = gradUsing[1][1]*chir + Using[1]*drchir*dy_radius;
+        
+        psingExtended = psing*chir;
+
+        PetscFunctionReturn(0);
+    }
+
+    #undef __FUNCT__
     #define __FUNCT__ "get_singularity_extension_with_chix_chir"
     template<typename Shape, std::size_t Dimensions, typename gradtype>
     PetscErrorCode get_singularity_extension_with_chix_chir(singularity<Shape, 2> sing, 

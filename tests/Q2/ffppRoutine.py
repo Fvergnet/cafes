@@ -89,9 +89,9 @@ for (int i=0; i<Uh.ndof; i++)
         os.chdir('{}'.format(repertory))
         os.system("FreeFem++ compute_solution.edp")
 
-    def compute_errors_code(self, filemesh, filereference, filescafes):
+    def compute_errors_code(self, repertory, filemesh, filereference, filescafes):
         ffcode='''
-mesh Th = readmesh("%s");
+mesh Th = readmesh("%s.msh");
 
 // Fespace
 fespace Uh(Th, P2);
@@ -115,7 +115,7 @@ for (int i=0; i<Uh.ndof; i++)
 // Read Cafes solutions
 int size = %d;
 string[int] cafesfiles = ["%s"];
-ofstream errors("errors.txt");
+ofstream errors("%s/errors.txt");
 for (int f=0; f<size; f++)
 {
     cout << "file : " << cafesfiles[f]<< endl;
@@ -142,11 +142,11 @@ for (int f=0; f<size; f++)
 
     errors << l2p << " " << l2x << " " << l2y << " " << h1x << " " << h1y << endl;
 }
-''' % (filemesh, filereference, filereference, len(filescafes), '","'.join(filescafes))
+''' % (filemesh, filereference, filereference, len(filescafes), '","'.join(filescafes), repertory)
         return ffcode
 
-    def compute_errors(self, repertory):
-        ffcode = self.compute_errors_code("mesh.msh", "reference_solution", ["reference_solution","reference_solution"])
+    def compute_errors(self, repertory, referencemesh, referencesolution, cafesfiles):
+        ffcode = self.compute_errors_code(repertory, referencemesh, referencesolution, cafesfiles)
         with open('{}/compute_errors.edp'.format(repertory),'w') as file:
             file.write(ffcode)
         os.chdir('{}'.format(repertory))
@@ -156,5 +156,5 @@ for (int f=0; f<size; f++)
 
 if __name__ == "__main__":
     test = ffppRoutine(100,10,0.1,0.1/4.)
-    test.compute_solution("ffppreferences")
+    test.compute_solution("tresse")
     # test.compute_errors("test")
