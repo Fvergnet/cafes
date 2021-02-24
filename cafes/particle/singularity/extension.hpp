@@ -199,7 +199,7 @@ namespace cafes
     #undef __FUNCT__
     #define __FUNCT__ "get_Babic_singularity_extension"
     template<typename Shape, std::size_t Dimensions, typename gradtype>
-    PetscErrorCode get_singularity_extension_with_chir(singularity<Shape, 2> sing, 
+    PetscErrorCode get_Babic_extension(singularity<Shape, 2> sing, 
                                      particle<Shape> const& p1,
                                      geometry::position<double, Dimensions> pts,
                                      gradtype& gradUsingExtended,
