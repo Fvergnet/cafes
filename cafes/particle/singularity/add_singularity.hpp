@@ -703,7 +703,7 @@ namespace cafes
                   {
                     std::array<double, Dimensions> UsingExtended;
                     double psingExtended;
-                    get_field_extension_with_chix_chir(sing, p1, pts, UsingExtended, psingExtended);
+                    get_Babic_field_extension(sing, p1, pts, UsingExtended, psingExtended);
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
@@ -715,7 +715,7 @@ namespace cafes
                   {
                     std::array<double, Dimensions> UsingExtended;
                     double psingExtended;
-                    get_field_extension_with_chix_chir(sing, p2, pts, UsingExtended, psingExtended);
+                    get_Babic_field_extension(sing, p2, pts, UsingExtended, psingExtended);
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
@@ -747,7 +747,7 @@ namespace cafes
                   {
                       std::array<double, Dimensions> UsingExtended;
                       double psingExtended;
-                      get_field_extension_with_chix_chir(sing, p1, pts, UsingExtended, psingExtended);
+                      get_Babic_field_extension(sing, p1, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
                       p[0] += psingExtended;
                   }
@@ -756,7 +756,7 @@ namespace cafes
                   {
                       std::array<double, Dimensions> UsingExtended;
                       double psingExtended;
-                      get_field_extension_with_chix_chir(sing, p2, pts, UsingExtended, psingExtended);
+                      get_Babic_field_extension(sing, p2, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
                       p[0] += psingExtended;
                   }

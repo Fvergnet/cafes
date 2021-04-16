@@ -197,9 +197,42 @@ namespace cafes
     }
 
     #undef __FUNCT__
+    #define __FUNCT__ "get_Babic_field_extension"
+    template<typename Shape, std::size_t Dimensions, typename velocitytype>
+    PetscErrorCode get_Babic_field_extension(singularity<Shape, 2> sing, 
+                                     particle<Shape> const& p1,
+                                     geometry::position<double, Dimensions> pts,
+                                     velocitytype& UsingExtended,
+                                     double& psingExtended)
+    {
+        PetscErrorCode ierr;
+        PetscFunctionBeginUser;
+
+        double eps = p1.shape_factors_[0]/2.01;
+        double a = 2*p1.shape_factors_[0]/3.;
+
+        double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
+        double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
+
+        geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + (2*p1.shape_factors_[0]-radius)*std::cos(theta),p1.center_[1] + (2*p1.shape_factors_[0]-radius)*std::sin(theta)};
+        geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + (1.5*p1.shape_factors_[0]-0.5*radius)*std::cos(theta),p1.center_[1] + (1.5*p1.shape_factors_[0]-0.5*radius)*std::sin(theta)};
+
+        auto Using1 = sing.get_u_sing(sympoint1); 
+        auto Using2 = sing.get_u_sing(sympoint2);
+        auto psing = -3*sing.get_p_sing(sympoint1) + 4*sing.get_p_sing(sympoint2);
+        auto chir = 1.-cafes::singularity::chiTrunc(radius, a*a, eps*eps);
+
+        UsingExtended[0] = (-3*Using1[0] + 4*Using2[0])*chir;
+        UsingExtended[1] = (-3*Using1[1] + 4*Using2[1])*chir;  
+        psingExtended = psing*chir;
+
+        PetscFunctionReturn(0);
+    }
+
+    #undef __FUNCT__
     #define __FUNCT__ "get_Babic_singularity_extension"
     template<typename Shape, std::size_t Dimensions, typename gradtype>
-    PetscErrorCode get_Babic_extension(singularity<Shape, 2> sing, 
+    PetscErrorCode get_Babic_singularity_extension(singularity<Shape, 2> sing, 
                                      particle<Shape> const& p1,
                                      geometry::position<double, Dimensions> pts,
                                      gradtype& gradUsingExtended,
@@ -207,26 +240,35 @@ namespace cafes
     {
         PetscErrorCode ierr;
         PetscFunctionBeginUser;
+        
+        double eps = p1.shape_factors_[0]/2.01;
+        double a = 2*p1.shape_factors_[0]/3.;
 
         double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
         double dx_radius = (std::abs(pts[0]-p1.center_[0])<=1e-14) ? 0. : (pts[0] - p1.center_[0])/radius;
         double dy_radius = (std::abs(pts[1]-p1.center_[1])<=1e-14) ? 0. : (pts[1] - p1.center_[1])/radius;
         
-        double eps = p1.shape_factors_[0]/4.;
-        double a = p1.shape_factors_[0] - 2*eps;
+        double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
+        double dx_theta = (std::abs(pts[1]-p1.center_[1])<=1e-14) ? 0. : (pts[1] - p1.center_[1])/(radius*radius);
+        double dy_theta = (std::abs(pts[0]-p1.center_[0])<=1e-14) ? 0. : (pts[0] - p1.center_[0])/(radius*radius);
 
-        auto Using = sing.get_u_sing(pts);
-        auto gradUsing = sing.get_grad_u_sing(pts);
-        auto psing = sing.get_p_sing(pts);
+        geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + (2*p1.shape_factors_[0]-radius)*std::cos(theta),p1.center_[1] + (2*p1.shape_factors_[0]-radius)*std::sin(theta)};
+        geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + (1.5*p1.shape_factors_[0]-0.5*radius)*std::cos(theta),p1.center_[1] + (1.5*p1.shape_factors_[0]-0.5*radius)*std::sin(theta)};
+
+        auto Using1 = sing.get_u_sing(sympoint1); 
+        auto Using2 = sing.get_u_sing(sympoint2);
+        auto gradUsing1 = sing.get_grad_u_sing(sympoint1);
+        auto gradUsing2 = sing.get_grad_u_sing(sympoint2);
+        auto psing = -3*sing.get_p_sing(sympoint1) + 4*sing.get_p_sing(sympoint2);
         auto chir = 1.-cafes::singularity::chiTrunc(radius, a*a, eps*eps);
         auto drchir = -1.*cafes::singularity::dchiTrunc(radius, a*a, eps*eps);
 
-        gradUsingExtended[0][0] = gradUsing[0][0]*chir + Using[0]*drchir*dx_radius;
-        gradUsingExtended[0][1] = gradUsing[0][1]*chir + Using[0]*drchir*dy_radius;
-        gradUsingExtended[1][0] = gradUsing[1][0]*chir + Using[1]*drchir*dx_radius;
-        gradUsingExtended[1][1] = gradUsing[1][1]*chir + Using[1]*drchir*dy_radius;
+        gradUsingExtended[0][0] = (dx_radius*(3*gradUsing1[0][0] - 2*gradUsing2[0][0]) + dx_theta*(-3*gradUsing1[0][0] + 4*gradUsing2[0][0]))*chir + (-3*Using1[0] + 4*Using2[0])*drchir*dx_radius;
+        // gradUsingExtended[0][1] = gradUsing[0][1]*chir + Using[0]*drchir*dy_radius;
+        // gradUsingExtended[1][0] = gradUsing[1][0]*chir + Using[1]*drchir*dx_radius;
+        // gradUsingExtended[1][1] = gradUsing[1][1]*chir + Using[1]*drchir*dy_radius;
         
-        psingExtended = psing*chir;
+        // psingExtended = psing*chir;
 
         PetscFunctionReturn(0);
     }
