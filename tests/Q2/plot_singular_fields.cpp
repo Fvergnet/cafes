@@ -73,17 +73,9 @@ int main(int argc, char **argv)
 
     cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt, truncature);
 
-    std::string stout = "singular_fields_";
+    std::string stout = "Babic_singular_fields_";
     stout.append("distance_is_R_over_");
     stout.append(std::to_string(int(std::round(R1/distance))));
-    if (!truncature)
-    {
-        stout.append("_without_truncature");
-    }
-    else
-    {
-        stout.append("_with_truncature_chix_chir");
-    }
     const char * stw = stout.c_str();
     ierr = cafes::io::save_hdf5("singular_fields", stw, st.sol, st.ctx->dm,
                               st.ctx->h);

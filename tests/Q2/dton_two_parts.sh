@@ -17,5 +17,5 @@ $exec \
     -distance 0.025 \
     -mx $i \
     -my $i \
-    -saverep "extension_with_chix"
+    -saverep "Babic_extension"
 done

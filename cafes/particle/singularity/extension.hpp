@@ -263,12 +263,32 @@ namespace cafes
         auto chir = 1.-cafes::singularity::chiTrunc(radius, a*a, eps*eps);
         auto drchir = -1.*cafes::singularity::dchiTrunc(radius, a*a, eps*eps);
 
-        gradUsingExtended[0][0] = (dx_radius*(3*gradUsing1[0][0] - 2*gradUsing2[0][0]) + dx_theta*(-3*gradUsing1[0][0] + 4*gradUsing2[0][0]))*chir + (-3*Using1[0] + 4*Using2[0])*drchir*dx_radius;
-        // gradUsingExtended[0][1] = gradUsing[0][1]*chir + Using[0]*drchir*dy_radius;
-        // gradUsingExtended[1][0] = gradUsing[1][0]*chir + Using[1]*drchir*dx_radius;
-        // gradUsingExtended[1][1] = gradUsing[1][1]*chir + Using[1]*drchir*dy_radius;
+        // Gradient of Using1 and Using2 in polar coordinates
+        gradtype polarGradUsing1, polarGradUsing2;
+        polarGradUsing1[0][0] = -std::cos(theta)*gradUsing1[0][0] - std::sin(theta)*gradUsing1[0][1];
+        polarGradUsing1[1][0] = -std::cos(theta)*gradUsing1[1][0] - std::sin(theta)*gradUsing1[1][1];
+        polarGradUsing1[0][1] = -(2*p1.shape_factors_[0]-radius)*std::sin(theta)*gradUsing1[0][0] + (2*p1.shape_factors_[0]-radius)*std::cos(theta)*gradUsing1[0][1];
+        polarGradUsing1[1][1] = -(2*p1.shape_factors_[0]-radius)*std::sin(theta)*gradUsing1[1][0] + (2*p1.shape_factors_[0]-radius)*std::cos(theta)*gradUsing1[1][1];
+
+        polarGradUsing2[0][0] = -.5*std::cos(theta)*gradUsing2[0][0] - .5*std::sin(theta)*gradUsing2[0][1];
+        polarGradUsing2[1][0] = -.5*std::cos(theta)*gradUsing2[1][0] - .5*std::sin(theta)*gradUsing2[1][1];
+        polarGradUsing2[0][1] = -(1.5*p1.shape_factors_[0]-.5*radius)*std::sin(theta)*gradUsing2[0][0] + (1.5*p1.shape_factors_[0]-.5*radius)*std::cos(theta)*gradUsing2[0][1];
+        polarGradUsing2[1][1] = -(1.5*p1.shape_factors_[0]-.5*radius)*std::sin(theta)*gradUsing2[1][0] + (1.5*p1.shape_factors_[0]-.5*radius)*std::cos(theta)*gradUsing2[1][1];
+
+        // Gradient of the Babic extension in Cartesian coordinates
+        gradtype BabicGradUsing;
+        BabicGradUsing[0][0] = dx_radius*(3.*polarGradUsing1[0][0] - 2.*polarGradUsing2[0][0]) + dx_theta*(-3.*polarGradUsing1[0][1] + 4.*polarGradUsing2[0][1]);
+        BabicGradUsing[1][0] = dx_radius*(3.*polarGradUsing1[1][0] - 2.*polarGradUsing2[1][0]) + dx_theta*(-3.*polarGradUsing1[1][1] + 4.*polarGradUsing2[1][1]);
+        BabicGradUsing[0][1] = dy_radius*(3.*polarGradUsing1[0][0] - 2.*polarGradUsing2[0][0]) + dy_theta*(-3.*polarGradUsing1[0][1] + 4.*polarGradUsing2[0][1]);
+        BabicGradUsing[1][1] = dy_radius*(3.*polarGradUsing1[1][0] - 2.*polarGradUsing2[1][0]) + dy_theta*(-3.*polarGradUsing1[1][1] + 4.*polarGradUsing2[1][1]);
+
+        // Gradient of (Babic extension times chir) in Cartesian coordinates
+        gradUsingExtended[0][0] = BabicGradUsing[0][0]*chir + (-3*Using1[0] + 4*Using2[0])*dx_radius*drchir;
+        gradUsingExtended[1][0] = BabicGradUsing[1][0]*chir + (-3*Using1[1] + 4*Using2[1])*dx_radius*drchir;
+        gradUsingExtended[0][1] = BabicGradUsing[0][1]*chir + (-3*Using1[0] + 4*Using2[0])*dy_radius*drchir;
+        gradUsingExtended[1][1] = BabicGradUsing[1][1]*chir + (-3*Using1[1] + 4*Using2[1])*dy_radius*drchir;
         
-        // psingExtended = psing*chir;
+        psingExtended = psing*chir;
 
         PetscFunctionReturn(0);
     }
@@ -489,7 +509,7 @@ namespace cafes
         PetscFunctionReturn(0);
     }
 
-    ALIAS_TEMPLATE_FUNCTION(get_singularity_extension, get_singularity_extension_with_chix);
+    ALIAS_TEMPLATE_FUNCTION(get_singularity_extension, get_Babic_singularity_extension);
 
     #undef __FUNCT__
     #define __FUNCT__ "extension_in_particle"
