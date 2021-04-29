@@ -25,6 +25,7 @@ border circle2(t=0,2*pi){x=0.5+distance/2.+radius + radius*cos(t); y = 0.5 + rad
 int Ncircle = max(2*pi*radius*N/distance, 2*pi*radius*Nborder);
 
 mesh Th = buildmesh(bottom(Nborder) + right(Nborder) + top(Nborder) + left(Nborder) + circle1(-Ncircle) + circle2(-Ncircle));
+plot(Th,wait=1);
 
 savemesh(Th,"mesh_distance_is_radius_over_"+int(radius/distance)+".msh");
 
@@ -83,13 +84,15 @@ for (int i=0; i<Uh.ndof; i++)
 
     def compute_solution(self, repertory):
         os.system('mkdir {}'.format(repertory))
+        tmp = dir_path = os.path.dirname(os.path.realpath(__file__))
         ffmesh = self.freefem_code()
         with open(repertory+"/compute_solution.edp","w") as file:
             file.write(ffmesh)
         os.chdir('{}'.format(repertory))
         os.system("FreeFem++ compute_solution.edp")
+        os.chdir(tmp)
 
-    def compute_errors_code(self, repertory, filemesh, filereference, filescafes):
+    def compute_errors_code(self, filemesh, filereference, filescafes, errors_output):
         ffcode='''
 mesh Th = readmesh("%s.msh");
 
@@ -115,7 +118,7 @@ for (int i=0; i<Uh.ndof; i++)
 // Read Cafes solutions
 int size = %d;
 string[int] cafesfiles = ["%s"];
-ofstream errors("%s/errors.txt");
+ofstream errors("%s.txt");
 for (int f=0; f<size; f++)
 {
     cout << "file : " << cafesfiles[f]<< endl;
@@ -141,20 +144,31 @@ for (int f=0; f<size; f++)
     real h1y = sqrt(int2d(Th)(dx(uyerr)*dx(uyerr) + dy(uyerr)*dy(uyerr)));
 
     errors << l2p << " " << l2x << " " << l2y << " " << h1x << " " << h1y << endl;
+    cout << l2p << " " << l2x << " " << l2y << " " << h1x << " " << h1y << endl;
 }
-''' % (filemesh, filereference, filereference, len(filescafes), '","'.join(filescafes), repertory)
+''' % (filemesh, filereference, filereference, len(filescafes), '","'.join(filescafes),errors_output)
         return ffcode
 
-    def compute_errors(self, repertory, referencemesh, referencesolution, cafesfiles):
-        ffcode = self.compute_errors_code(repertory, referencemesh, referencesolution, cafesfiles)
-        with open('{}/compute_errors.edp'.format(repertory),'w') as file:
+    def compute_errors(self, repository, referencemesh, referencesolution, cafesfiles, errors_output):
+        ffcode = self.compute_errors_code(referencemesh, referencesolution, cafesfiles, errors_output)
+        tmp = dir_path = os.path.dirname(os.path.realpath(__file__))
+        os.chdir('{}'.format(repository))
+        with open('compute_errors.edp','w') as file:
             file.write(ffcode)
-        os.chdir('{}'.format(repertory))
+        #os.chdir('{}'.format(repertory))
         os.system("FreeFem++ compute_errors.edp")
+        os.chdir(tmp)
 
 
 
 if __name__ == "__main__":
-    test = ffppRoutine(100,10,0.1,0.1/4.)
-    test.compute_solution("tresse")
-    # test.compute_errors("test")
+    test = ffppRoutine(200,50,0.1,0.1/4.)
+    #test.compute_solution("ffppreferences")
+
+    N = [110,120,130,140,150]
+    singularity = 1
+    solfile = "../Babic_extension/two_parts_solution_compute_sing_is_{0:d}_distance_is_radius_over_4_mx_".format(singularity)
+    cafesfiles = []
+    for i in range(len(N)):
+        cafesfiles.append(solfile+str(N[i]))
+    test.compute_errors("ffppreferences", "mesh_distance_is_radius_over_4", "reference_solution_distance_is_radius_over_4", cafesfiles,"errors_sing_{0:d}".format(singularity))

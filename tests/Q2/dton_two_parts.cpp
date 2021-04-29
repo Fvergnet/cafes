@@ -73,6 +73,17 @@ int main(int argc, char **argv)
     ierr = s.solve();
     CHKERRQ(ierr);
 
+    // Save solution
+    if (singularity)
+    {
+        cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
+        ierr = cafes::io::save_hdf5(saverep.c_str(), "solution_with_sing", st.sol, st.ctx->dm, st.ctx->h);
+    }
+    else 
+    {
+        ierr = cafes::io::save_hdf5(saverep.c_str(), "solution_without_sing", st.sol, st.ctx->dm, st.ctx->h);
+    }
+    
     std::ofstream myfile;
     std::string filename = saverep+"/simulation_infos_compute_sing_is_"+std::to_string(singularity);
     filename.append("_distance_is_radius_over_");
@@ -84,8 +95,6 @@ int main(int argc, char **argv)
 
     // ff.loadmesh("test.txt");
     // auto test = mesh.interpolate(ctx, st.sol);
-
-    // cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
     
     std::string stout = "two_parts_solution_compute_sing_is_"+std::to_string(singularity);
     // std::string stout = "rhs_sing_";

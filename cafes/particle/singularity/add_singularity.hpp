@@ -707,7 +707,7 @@ namespace cafes
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
-                      u[d] += UsingExtended[d];
+                      u[d] += 0;//UsingExtended[d];
                     }
                   }
 
@@ -719,7 +719,7 @@ namespace cafes
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
-                      u[d] += UsingExtended[d];
+                      u[d] += 0;//UsingExtended[d];
                     }
                   }
                 }
@@ -749,7 +749,7 @@ namespace cafes
                       double psingExtended;
                       get_Babic_field_extension(sing, p1, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += psingExtended;
+                      p[0] += 0;//psingExtended;
                   }
 
                   if (p2.contains(pts) and truncature) 
@@ -758,7 +758,7 @@ namespace cafes
                       double psingExtended;
                       get_Babic_field_extension(sing, p2, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += psingExtended;
+                      p[0] += 0;//psingExtended;
                   }
                 }
               }

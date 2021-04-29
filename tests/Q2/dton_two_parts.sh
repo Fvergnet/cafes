@@ -3,8 +3,8 @@
 exec=../../build/tests/dton_two_parts
 nproc=1
 
-for i in '61'
-do
+for i in '111' '121' '131' '141' '151'
+do 
 $exec \
     -stokes_ksp_type preonly \
     -stokes_pc_type lu \
@@ -12,7 +12,7 @@ $exec \
     -dton_ksp_rtol 1e-5 \
     -dton_ksp_type gmres \
     -assembling \
-    -compute_singularity 1\
+    -compute_singularity 1 \
     -order 2 \
     -distance 0.025 \
     -mx $i \
