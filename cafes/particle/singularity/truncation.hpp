@@ -203,6 +203,33 @@ namespace cafes
        return dalphaTrunc((2*X-l-eps)/(l-eps))/(l-eps);
    }
 
+   PetscScalar extchiTrunc(PetscReal X, PetscReal l, PetscReal eps)
+   /* Truncture function used in Babic's singularity extension */
+   {
+     assert(l>=eps);
+
+     if(0<=X && X<l-eps)
+       return 1;
+     else 
+       if(l-eps<=X && X<l+eps)
+         return 0.5*( 1-alphaTrunc((X-l)/eps) );
+       else
+         return 0;
+   }
+
+   PetscScalar dextchiTrunc(PetscReal X, PetscReal l, PetscReal eps)
+   {
+     assert(l>=eps);
+
+     if(0<=X && X<l-eps)
+       return 0;
+     else if(l-eps<=X && X<l+eps)
+       return -0.5/eps*dalphaTrunc((X-l)/eps) ;
+       //return - dalphaTrunc((X2-l)/eps)/eps/2.;
+     else
+       return 0;
+   }
+
 
      // PetscScalar chiTrunc(PetscReal X, PetscReal l, PetscReal eps)
      // {

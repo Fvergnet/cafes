@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 {
 
     PetscErrorCode ierr;
+    Vec            dux, duy;
     std::size_t const dim = 2;
 
     ierr = PetscInitialize(&argc, &argv, (char *)0, (char *)0);
@@ -80,6 +81,24 @@ int main(int argc, char **argv)
     ierr = cafes::io::save_hdf5("singular_fields", stw, st.sol, st.ctx->dm,
                               st.ctx->h);
     // CHKERRQ(ierr);
+
+    ierr = VecDuplicate(st.sol, &dux);CHKERRQ(ierr);
+    ierr = VecDuplicate(st.sol, &duy);CHKERRQ(ierr);
+    cafes::singularity::add_grad_singularity_to_ureg(st.ctx->dm, st.ctx->h, dux, duy, pt, truncature);
+
+    stout = "Babic_singular_dux_";
+    stout.append("distance_is_R_over_");
+    stout.append(std::to_string(int(std::round(R1/distance))));
+    stw = stout.c_str();
+    ierr = cafes::io::save_hdf5("singular_fields", stw, dux, st.ctx->dm,
+                              st.ctx->h);
+
+    stout = "Babic_singular_duy_";
+    stout.append("distance_is_R_over_");
+    stout.append(std::to_string(int(std::round(R1/distance))));
+    stw = stout.c_str();
+    ierr = cafes::io::save_hdf5("singular_fields", stw, duy, st.ctx->dm,
+                              st.ctx->h);
 
     // ierr = s.solve();
     // CHKERRQ(ierr);

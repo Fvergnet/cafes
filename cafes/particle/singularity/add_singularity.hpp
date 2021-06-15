@@ -707,7 +707,7 @@ namespace cafes
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
-                      u[d] += 0;//UsingExtended[d];
+                      u[d] += UsingExtended[d];
                     }
                   }
 
@@ -719,7 +719,7 @@ namespace cafes
                     auto u = sol_u.at_g(pts_i);
                     for (std::size_t d=0; d<Dimensions; ++d)
                     {
-                      u[d] += 0;//UsingExtended[d];
+                      u[d] += UsingExtended[d];
                     }
                   }
                 }
@@ -749,7 +749,7 @@ namespace cafes
                       double psingExtended;
                       get_Babic_field_extension(sing, p1, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += 0;//psingExtended;
+                      p[0] += psingExtended;
                   }
 
                   if (p2.contains(pts) and truncature) 
@@ -758,12 +758,109 @@ namespace cafes
                       double psingExtended;
                       get_Babic_field_extension(sing, p2, pts, UsingExtended, psingExtended);
                       auto p = sol_p.at_g(pts_i);
-                      p[0] += 0;//psingExtended;
+                      p[0] += psingExtended;
                   }
                 }
               }
             }
 
+          }
+        }
+      }
+      PetscFunctionReturn(0);
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "add_grad_singularity_to_ureg"
+    template<std::size_t Dimensions, class Particles>
+    PetscErrorCode add_grad_singularity_to_ureg(DM dm, std::array<double, Dimensions> h, Vec dvx, Vec dvy, const Particles& particles, bool truncature=1)
+    {
+      PetscErrorCode ierr;
+      PetscFunctionBeginUser;
+      using position_type = geometry::position<double, Dimensions>;
+      using position_type_i = geometry::position<int, Dimensions>;
+      std::array<double, Dimensions> hp = {2*h[0], 2*h[1]};
+
+      auto union_box_func = geometry::union_box<int, Dimensions>;
+
+      auto box = fem::get_DM_bounds<Dimensions>(dm, 0);
+      auto box_p = fem::get_DM_bounds<Dimensions>(dm, 1);
+
+      auto dux = petsc::petsc_vec<Dimensions>(dm, dvx, 0, false);
+      auto duy = petsc::petsc_vec<Dimensions>(dm, dvy, 0, false);
+     
+
+      //Loop on particles couples
+      for (std::size_t ipart=0; ipart<particles.size()-1; ++ipart)
+      {
+        auto p1 = particles[ipart];
+        for (std::size_t jpart=ipart+1; jpart<particles.size(); ++jpart)
+        {
+          auto p2 = particles[jpart];
+
+          using shape_type = typename decltype(p1)::shape_type;
+          auto sing = singularity<shape_type, Dimensions>(p1, p2, h[0]);
+          // auto sing_p = singularity<shape_type, Dimensions>(p1, p2, hp[0]);
+
+          if (sing.is_singularity_)
+          {
+            auto pbox = sing.get_box(h);
+            // auto pbox_p = sing_p.get_box(hp);
+            
+            // VELOCITY
+            if (geometry::intersect(box, pbox))
+            {
+              auto new_box = geometry::box_inside(box, pbox);
+              for (std::size_t j=new_box.bottom_left[1]; j<new_box.upper_right[1]; ++j)
+              {
+                for (std::size_t i=new_box.bottom_left[0]; i<new_box.upper_right[0]; ++i)
+                {
+                  position_type_i pts_i = {i, j};
+                  position_type pts = {i*h[0], j*h[1]};
+                  if ((!p1.contains(pts) and !p2.contains(pts)) or !truncature)
+                  {
+                    auto grad_u_sing = sing.get_grad_u_sing(pts);
+                    auto dux_loc = dux.at_g(pts_i);
+                    auto duy_loc = duy.at_g(pts_i);
+                    //std::cout << "u " << u[0] << " " << u[1] << "\n";
+                    for (std::size_t d=0; d<Dimensions; ++d)
+                    {
+                      dux_loc[d] += grad_u_sing[0][d];
+                      duy_loc[d] += grad_u_sing[1][d];
+                    }
+                    //std::cout << "u new" << u[0] << " " << u[1] << "\n";
+                  }
+
+                  if (p1.contains(pts) and truncature)
+                  {
+                    std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended;
+                    double psingExtended;
+                    get_Babic_singularity_extension(sing, p1, pts, gradUsingExtended, psingExtended);
+                    auto dux_loc = dux.at_g(pts_i);
+                    auto duy_loc = duy.at_g(pts_i);
+                    for (std::size_t d=0; d<Dimensions; ++d)
+                    {
+                      dux_loc[d] += gradUsingExtended[0][d];
+                      duy_loc[d] += gradUsingExtended[1][d];
+                    }
+                  }
+
+                  if (p2.contains(pts) and truncature)
+                  {
+                    std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended;
+                    double psingExtended;
+                    get_Babic_singularity_extension(sing, p2, pts, gradUsingExtended, psingExtended);
+                    auto dux_loc = dux.at_g(pts_i);
+                    auto duy_loc = duy.at_g(pts_i);
+                    for (std::size_t d=0; d<Dimensions; ++d)
+                    {
+                      dux_loc[d] += gradUsingExtended[0][d];
+                      duy_loc[d] += gradUsingExtended[1][d];
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

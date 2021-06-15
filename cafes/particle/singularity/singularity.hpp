@@ -59,7 +59,7 @@ namespace cafes
       double H1_, H2_;
       double UN1_, UN2_;
       double K_;
-      double scale = 100;
+      double scale = 500;
 
       double contact_length_;
       double cutoff_dist_;
@@ -92,6 +92,8 @@ namespace cafes
         UN1_ = p1.velocity_[0];
         UN2_ = p2.velocity_[0];
         contact_length_ = dist - r1 - r2;
+
+        // std::cout << "distance : " << r1 << " " << r2 << " " << contact_length_ << " " << dist << std::endl;
         K_ = .5*(1./r1 + 1./r2);
 
         std::cout << "K = " << K_ << ", H = " << H1_ << ", M = " << H2_ << "\n"; 
