@@ -59,7 +59,7 @@ namespace cafes
       double H1_, H2_;
       double UN1_, UN2_;
       double K_;
-      double scale = 500;
+      double scale = 100;
 
       double contact_length_;
       double cutoff_dist_;
