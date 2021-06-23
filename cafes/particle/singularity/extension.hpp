@@ -362,6 +362,32 @@ namespace cafes
     }
 
     #undef __FUNCT__
+    #define __FUNCT__ "lcontraction"
+    double lcontraction(double r, double Radius, double contact_length, int l)
+    {
+        double value = Radius + contact_length*(1.-r/Radius)/l;
+        return value;
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "drlcontraction"
+    double drlcontraction(double Radius, double contact_length, int l)
+    {
+        double value = -contact_length/(Radius*l);
+        return value;
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "get_Babic_coefficients"
+    std::vector<double> get_Babic_coefficients(int const& order)
+    {
+        std::vector<double> coeffs(order,0.);
+        if (order==2) coeffs = {-9., 10.};
+        else if (order==3) coeffs = {58.5, -260.,   202.5};
+        return coeffs;
+    }
+
+    #undef __FUNCT__
     #define __FUNCT__ "get_Babic_singularity_extension"
     template<typename Shape, std::size_t Dimensions, typename gradtype>
     PetscErrorCode get_Babic_singularity_extension(singularity<Shape, 2> sing, 
@@ -372,11 +398,15 @@ namespace cafes
     {
         PetscErrorCode ierr;
         PetscFunctionBeginUser;
+        int BabicOrder = 3;
         
         double eps = p1.shape_factors_[0]/4.;
         double a = 3*p1.shape_factors_[0]/4.;
-        double Babic1 = -1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
-        double Babic2 =  2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
+        
+        auto BabicCoeffs = get_Babic_coefficients(BabicOrder);
+        double Babic1 = BabicCoeffs[0];//-1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
+        double Babic2 =  BabicCoeffs[1];//2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
+        // std::cout << "Babic: " << Babic1 << " " << Babic2 << std::endl; 
 
         double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
         double dx_radius = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/radius;
@@ -386,51 +416,98 @@ namespace cafes
         double dx_theta = (std::abs(pts[1]-p1.center_[1])<=1e-6) ? 0. : (pts[1] - p1.center_[1])/(radius*radius);
         double dy_theta = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/(radius*radius);
 
-        double R1 = p1.shape_factors_[0] +    sing.contact_length_ -    sing.contact_length_*radius/p1.shape_factors_[0];
-        double R2 = p1.shape_factors_[0] + .5*sing.contact_length_ - .5*sing.contact_length_*radius/p1.shape_factors_[0];
-        double drR1 = -    sing.contact_length_ / p1.shape_factors_[0];
-        double drR2 = - .5*sing.contact_length_ / p1.shape_factors_[0];
-
-        geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + R1 * std::cos(theta), 
-                                                          p1.center_[1] + R1 * std::sin(theta)};
-        geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + R2 * std::cos(theta),
-                                                          p1.center_[1] + R2 * std::sin(theta)};
-
-        auto Using1 = sing.get_u_sing(sympoint1); 
-        auto Using2 = sing.get_u_sing(sympoint2);
-        auto gradUsing1 = sing.get_grad_u_sing(sympoint1);
-        auto gradUsing2 = sing.get_grad_u_sing(sympoint2);
-        auto psing = Babic1*sing.get_p_sing(sympoint1) + Babic2*sing.get_p_sing(sympoint2);
         auto chir = 1.-cafes::singularity::extchiTrunc(radius, a, eps);
         auto drchir = -1.*cafes::singularity::dextchiTrunc(radius, a, eps);
 
-        gradUsingExtended[0][0] = (  Babic1*(drR1*dx_radius*std::cos(theta) - R1*dx_theta*std::sin(theta))*gradUsing1[0][0]   \
-                                    +Babic1*(drR1*dx_radius*std::sin(theta) + R1*dx_theta*std::cos(theta))*gradUsing1[0][1]   \
-                                    +Babic2*(drR2*dx_radius*std::cos(theta) - R2*dx_theta*std::sin(theta))*gradUsing2[0][0]   \
-                                    +Babic2*(drR2*dx_radius*std::sin(theta) + R2*dx_theta*std::cos(theta))*gradUsing2[0][1] ) \
-                                  *chir \
-                                  + (Babic1*Using1[0] + Babic2*Using2[0])*dx_radius*drchir;
+        // std::vector<double> R(BabicOrder,0.);
+        // std::vector<double> drR(BabicOrder,0.);
+        // std::vector<double> Using(BabicOrder,0.);
+        // std::vector<double> gradUsing(BabicOrder,0.);
+        gradUsingExtended[0][0] = 0.;
+        gradUsingExtended[0][1] = 0.;
+        gradUsingExtended[1][0] = 0.;
+        gradUsingExtended[1][1] = 0.;
+        double psing = 0;
+        for (std::size_t i=0; i<BabicOrder; ++i)
+        {
+            auto R = lcontraction(radius, p1.shape_factors_[0], sing.contact_length_, i+1);
+            auto drR = drlcontraction(p1.shape_factors_[0], sing.contact_length_, i+1);
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + R * std::cos(theta), 
+                                                             p1.center_[1] + R * std::sin(theta)};
+            auto Using = sing.get_u_sing(sympoint);
+            auto gradUsing = sing.get_grad_u_sing(sympoint);
 
-        gradUsingExtended[1][0] = (  Babic1*(drR1*dx_radius*std::cos(theta) - R1*dx_theta*std::sin(theta))*gradUsing1[1][0]   \
-                                    +Babic1*(drR1*dx_radius*std::sin(theta) + R1*dx_theta*std::cos(theta))*gradUsing1[1][1]   \
-                                    +Babic2*(drR2*dx_radius*std::cos(theta) - R2*dx_theta*std::sin(theta))*gradUsing2[1][0]   \
-                                    +Babic2*(drR2*dx_radius*std::sin(theta) + R2*dx_theta*std::cos(theta))*gradUsing2[1][1] ) \
-                                  *chir \
-                                  + (Babic1*Using1[1] + Babic2*Using2[1])*dx_radius*drchir;
+            psing += BabicCoeffs[i]*sing.get_p_sing(sympoint);
+            gradUsingExtended[0][0] += ( BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[0][0] \
+                                        +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[0][1] ) \
+                                       *chir \
+                                       + BabicCoeffs[i]*Using[0]*dx_radius*drchir;
+            
+            gradUsingExtended[1][0] += (  BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[1][0]   \
+                                         +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[1][1] ) \
+                                       *chir \
+                                       + BabicCoeffs[i]*Using[1]*dx_radius*drchir;
 
-        gradUsingExtended[0][1] = (  Babic1*(drR1*dy_radius*std::cos(theta) - R1*dy_theta*std::sin(theta))*gradUsing1[0][0]   \
-                                    +Babic1*(drR1*dy_radius*std::sin(theta) + R1*dy_theta*std::cos(theta))*gradUsing1[0][1]   \
-                                    +Babic2*(drR2*dy_radius*std::cos(theta) - R2*dy_theta*std::sin(theta))*gradUsing2[0][0]   \
-                                    +Babic2*(drR2*dy_radius*std::sin(theta) + R2*dy_theta*std::cos(theta))*gradUsing2[0][1] ) \
-                                  *chir \
-                                  + (Babic1*Using1[0] + Babic2*Using2[0])*dy_radius*drchir;
+            gradUsingExtended[0][1] += (  BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[0][0]   \
+                                         +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[0][1] ) \
+                                       *chir \
+                                       + BabicCoeffs[i]*Using[0]*dy_radius*drchir;
 
-        gradUsingExtended[1][1] = (  Babic1*(drR1*dy_radius*std::cos(theta) - R1*dy_theta*std::sin(theta))*gradUsing1[1][0]   \
-                                    +Babic1*(drR1*dy_radius*std::sin(theta) + R1*dy_theta*std::cos(theta))*gradUsing1[1][1]   \
-                                    +Babic2*(drR2*dy_radius*std::cos(theta) - R2*dy_theta*std::sin(theta))*gradUsing2[1][0]   \
-                                    +Babic2*(drR2*dy_radius*std::sin(theta) + R2*dy_theta*std::cos(theta))*gradUsing2[1][1] ) \
-                                  *chir \
-                                  + (Babic1*Using1[1] + Babic2*Using2[1])*dy_radius*drchir;
+            gradUsingExtended[1][1] += ( BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[1][0]   \
+                                       +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[1][1] ) \
+                                      *chir \
+                                      + BabicCoeffs[i]*Using[1]*dy_radius*drchir;
+        }
+
+        // double R1 = p1.shape_factors_[0] +    sing.contact_length_ -    sing.contact_length_*radius/p1.shape_factors_[0];
+        // double R2 = p1.shape_factors_[0] + .5*sing.contact_length_ - .5*sing.contact_length_*radius/p1.shape_factors_[0];
+        // double drR1 = -    sing.contact_length_ / p1.shape_factors_[0];
+        // double drR2 = - .5*sing.contact_length_ / p1.shape_factors_[0];
+
+        // geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + R1 * std::cos(theta), 
+        //                                                   p1.center_[1] + R1 * std::sin(theta)};
+        // geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + R2 * std::cos(theta),
+        //                                                   p1.center_[1] + R2 * std::sin(theta)};
+
+        // auto Using1 = sing.get_u_sing(sympoint1); 
+        // auto Using2 = sing.get_u_sing(sympoint2);
+        // auto gradUsing1 = sing.get_grad_u_sing(sympoint1);
+        // auto gradUsing2 = sing.get_grad_u_sing(sympoint2);
+        // auto psing = Babic1*sing.get_p_sing(sympoint1) + Babic2*sing.get_p_sing(sympoint2);
+        
+
+        // gradUsingExtended[0][0] = (Babic1*gradUsing1[0][0] + Babic2*gradUsing2[0][0])*chir;
+        // gradUsingExtended[0][1] = (Babic1*gradUsing1[0][1] + Babic2*gradUsing2[0][1])*chir;
+        // gradUsingExtended[1][0] = (Babic1*gradUsing1[1][0] + Babic2*gradUsing2[1][0])*chir;
+        // gradUsingExtended[1][1] = (Babic1*gradUsing1[1][1] + Babic2*gradUsing2[1][1])*chir;
+
+        // gradUsingExtended[0][0] = (  Babic1*(drR1*dx_radius*std::cos(theta) - R1*dx_theta*std::sin(theta))*gradUsing1[0][0]   \
+        //                             +Babic1*(drR1*dx_radius*std::sin(theta) + R1*dx_theta*std::cos(theta))*gradUsing1[0][1]   \
+        //                             +Babic2*(drR2*dx_radius*std::cos(theta) - R2*dx_theta*std::sin(theta))*gradUsing2[0][0]   \
+        //                             +Babic2*(drR2*dx_radius*std::sin(theta) + R2*dx_theta*std::cos(theta))*gradUsing2[0][1] ) \
+        //                           *chir \
+        //                           + (Babic1*Using1[0] + Babic2*Using2[0])*dx_radius*drchir;
+
+        // gradUsingExtended[1][0] = (  Babic1*(drR1*dx_radius*std::cos(theta) - R1*dx_theta*std::sin(theta))*gradUsing1[1][0]   \
+        //                             +Babic1*(drR1*dx_radius*std::sin(theta) + R1*dx_theta*std::cos(theta))*gradUsing1[1][1]   \
+        //                             +Babic2*(drR2*dx_radius*std::cos(theta) - R2*dx_theta*std::sin(theta))*gradUsing2[1][0]   \
+        //                             +Babic2*(drR2*dx_radius*std::sin(theta) + R2*dx_theta*std::cos(theta))*gradUsing2[1][1] ) \
+        //                           *chir \
+        //                           + (Babic1*Using1[1] + Babic2*Using2[1])*dx_radius*drchir;
+
+        // gradUsingExtended[0][1] = (  Babic1*(drR1*dy_radius*std::cos(theta) - R1*dy_theta*std::sin(theta))*gradUsing1[0][0]   \
+        //                             +Babic1*(drR1*dy_radius*std::sin(theta) + R1*dy_theta*std::cos(theta))*gradUsing1[0][1]   \
+        //                             +Babic2*(drR2*dy_radius*std::cos(theta) - R2*dy_theta*std::sin(theta))*gradUsing2[0][0]   \
+        //                             +Babic2*(drR2*dy_radius*std::sin(theta) + R2*dy_theta*std::cos(theta))*gradUsing2[0][1] ) \
+        //                           *chir \
+        //                           + (Babic1*Using1[0] + Babic2*Using2[0])*dy_radius*drchir;
+
+        // gradUsingExtended[1][1] = (  Babic1*(drR1*dy_radius*std::cos(theta) - R1*dy_theta*std::sin(theta))*gradUsing1[1][0]   \
+        //                             +Babic1*(drR1*dy_radius*std::sin(theta) + R1*dy_theta*std::cos(theta))*gradUsing1[1][1]   \
+        //                             +Babic2*(drR2*dy_radius*std::cos(theta) - R2*dy_theta*std::sin(theta))*gradUsing2[1][0]   \
+        //                             +Babic2*(drR2*dy_radius*std::sin(theta) + R2*dy_theta*std::cos(theta))*gradUsing2[1][1] ) \
+        //                           *chir \
+        //                           + (Babic1*Using1[1] + Babic2*Using2[1])*dy_radius*drchir;
 
         psingExtended = psing*chir;
 

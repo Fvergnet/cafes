@@ -96,11 +96,12 @@ struct convergence_context2
             ierr = init_problem<Dimensions, Ctx>(*ctx, x);CHKERRQ(ierr);
  
             ierr = ctx->problem.solve();CHKERRQ(ierr);
-
+            ierr = cafes::io::save_hdf5("testdton", "stokes_singular_rhs_", ctx->problem.sol, ctx->problem.ctx->dm, ctx->problem.ctx->h);
  
             ierr = VecCopy(ctx->problem.sol, ctx->sol_tmp);CHKERRQ(ierr);
 
             std::vector<std::vector<geometry::vector<double, Dimensions>>> g;
+           
             g.resize(ctx->particles.size());
             for (std::size_t ipart = 0; ipart < ctx->surf_points.size(); ++ipart)
             {
@@ -108,6 +109,7 @@ struct convergence_context2
             }
 
             // interpolation
+            std::cout << "is rigid motion " << ctx->add_rigid_motion << " ; is singularity " << ctx->compute_singularity << std::endl;
             ierr = interp_fluid_to_surf(*ctx, g, ctx->add_rigid_motion,
                                         ctx->compute_singularity);
             CHKERRQ(ierr);
@@ -126,6 +128,7 @@ struct convergence_context2
             // VecView(ctx->problem.rhs, PETSC_VIEWER_STDOUT_WORLD);
 
             ierr = ctx->problem.solve();CHKERRQ(ierr);
+            
             ierr = VecScale(ctx->problem.sol, -1);CHKERRQ(ierr);
 
             ierr = compute_y<Dimensions, Ctx>(*ctx, y);CHKERRQ(ierr);

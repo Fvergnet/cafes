@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
     double R1 = .1;
     double distance = st.opt.distance;
-    bool truncature = 1;
+    bool extension = 1;
 
     auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
     auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     // ierr = s.setup_KSP();
     // CHKERRQ(ierr);
 
-    cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt, truncature);
+    cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt, extension);
 
     std::string stout = "Babic_singular_fields_";
     stout.append("distance_is_R_over_");
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
     ierr = VecDuplicate(st.sol, &dux);CHKERRQ(ierr);
     ierr = VecDuplicate(st.sol, &duy);CHKERRQ(ierr);
-    cafes::singularity::add_grad_singularity_to_ureg(st.ctx->dm, st.ctx->h, dux, duy, pt, truncature);
+    cafes::singularity::add_grad_singularity_to_ureg(st.ctx->dm, st.ctx->h, dux, duy, pt, extension);
 
     stout = "Babic_singular_dux_";
     stout.append("distance_is_R_over_");

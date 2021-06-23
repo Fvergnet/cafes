@@ -76,6 +76,7 @@ int main(int argc, char **argv)
     // Save solution
     if (singularity)
     {
+        ierr = cafes::io::save_hdf5(saverep.c_str(), "solution_with_sing_before", st.sol, st.ctx->dm, st.ctx->h);
         cafes::singularity::add_singularity_to_ureg(st.ctx->dm, st.ctx->h, st.sol, pt);
         ierr = cafes::io::save_hdf5(saverep.c_str(), "solution_with_sing", st.sol, st.ctx->dm, st.ctx->h);
     }
@@ -106,11 +107,11 @@ int main(int argc, char **argv)
                               st.ctx->h);
     CHKERRQ(ierr);
 
-    auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], singularity);
-    std::string refmeshrep = "ffppreferences/reference_mesh_distance_is_radius_over_"+std::to_string(int(std::round(R1/distance)));
-    auto ff = FenicsFunction(refmeshrep+"_velocity.txt", refmeshrep+"_pressure.txt");
-    ff.interpolate(ctx, st.sol);
-    ff.save(saverep +"/"+ stout);
+    // auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], singularity);
+    // std::string refmeshrep = "ffppreferences/reference_mesh_distance_is_radius_over_"+std::to_string(int(std::round(R1/distance)));
+    // auto ff = FenicsFunction(refmeshrep+"_velocity.txt", refmeshrep+"_pressure.txt");
+    // ff.interpolate(ctx, st.sol);
+    // ff.save(saverep +"/"+ stout);
 
     ierr = PetscFinalize();
     CHKERRQ(ierr);

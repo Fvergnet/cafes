@@ -9,8 +9,9 @@ $exec \
     -stokes_ksp_type preonly \
     -stokes_pc_type lu \
     -dton_ksp_monitor_true_residual \
-    -dton_ksp_rtol 1e-5 \
+    -dton_ksp_rtol 1e-4 \
     -dton_ksp_type gmres \
+    -dton_ksp_max_it 100 \
     -assembling \
     -compute_singularity 1 \
     -order 2 \

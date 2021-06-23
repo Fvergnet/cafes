@@ -276,6 +276,7 @@ namespace cafes
       std::size_t ipart=0;
       for(auto& spts: ctx.surf_points){
         for(std::size_t i=0; i<spts.size(); ++i){
+          // std::cout << "surf point " << i << " " << spts[i].first << " " << spts[i].second << std::endl;
           auto bfunc = fem::P2_integration(get_position(spts[i]), ctx.problem.ctx->h);
           auto ielem = fem::get_element(2*get_index(spts[i]), 2);
 

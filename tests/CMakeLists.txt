@@ -84,3 +84,6 @@ TARGET_LINK_LIBRARIES(dton_two_parts ${PETSC_LIBRARIES} ${MPI_LIBRARIES})
 
 ADD_EXECUTABLE(plot_singular_fields Q2/plot_singular_fields.cpp)
 TARGET_LINK_LIBRARIES(plot_singular_fields ${PETSC_LIBRARIES} ${MPI_LIBRARIES})
+
+ADD_EXECUTABLE(test_singularity_rhs Q2/test_singularity_rhs.cpp)
+TARGET_LINK_LIBRARIES(test_singularity_rhs ${PETSC_LIBRARIES} ${MPI_LIBRARIES})

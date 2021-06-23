@@ -408,16 +408,19 @@ namespace cafes
       PetscFunctionBeginUser;
 
       std::array<double, Dimensions> h = {2*ctx.problem.ctx->h[0], 2*ctx.problem.ctx->h[1]};
-
+      // auto& h = ctx.problem.ctx->h;
+      // std::cout << "inside computesingularBC" << std::endl;
       for(std::size_t isurf=0; isurf<ctx.surf_points[ipart_1].size(); ++isurf)
       {
         auto pos = ctx.surf_points[ipart_1][isurf].second + ctx.surf_points[ipart_1][isurf].first*h;
+        // std::cout << "surf point " << isurf << " " << pos[0] << " " << pos[1] << " ; inside box " << geometry::point_inside(box, pos) << std::endl;
         if (geometry::point_inside(box, pos))
         {
           auto pos_ref_part = sing.get_pos_in_part_ref(pos);
           if (std::abs(pos_ref_part[1]) <= sing.cutoff_dist_)
           {
             auto Using = sing.get_u_sing(pos);
+            std::cout << Using[0] << " " << Using[1] << std::endl;
             for (std::size_t d=0; d<Dimensions; ++d)
               g[ipart_1][isurf][d] += Using[d];
           }
@@ -773,7 +776,7 @@ namespace cafes
     #undef __FUNCT__
     #define __FUNCT__ "add_grad_singularity_to_ureg"
     template<std::size_t Dimensions, class Particles>
-    PetscErrorCode add_grad_singularity_to_ureg(DM dm, std::array<double, Dimensions> h, Vec dvx, Vec dvy, const Particles& particles, bool truncature=1)
+    PetscErrorCode add_grad_singularity_to_ureg(DM dm, std::array<double, Dimensions> h, Vec dvx, Vec dvy, const Particles& particles, bool extension=1)
     {
       PetscErrorCode ierr;
       PetscFunctionBeginUser;
@@ -817,7 +820,7 @@ namespace cafes
                 {
                   position_type_i pts_i = {i, j};
                   position_type pts = {i*h[0], j*h[1]};
-                  if ((!p1.contains(pts) and !p2.contains(pts)) or !truncature)
+                  if (!p1.contains(pts) and !p2.contains(pts))
                   {
                     auto grad_u_sing = sing.get_grad_u_sing(pts);
                     auto dux_loc = dux.at_g(pts_i);
@@ -831,7 +834,7 @@ namespace cafes
                     //std::cout << "u new" << u[0] << " " << u[1] << "\n";
                   }
 
-                  if (p1.contains(pts) and truncature)
+                  if (p1.contains(pts) and extension)
                   {
                     std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended;
                     double psingExtended;
@@ -845,7 +848,7 @@ namespace cafes
                     }
                   }
 
-                  if (p2.contains(pts) and truncature)
+                  if (p2.contains(pts) and extension)
                   {
                     std::array< std::array<double, Dimensions>, Dimensions > gradUsingExtended;
                     double psingExtended;
@@ -1180,7 +1183,7 @@ namespace cafes
 
           using shape_type = typename decltype(p1)::shape_type;
           auto sing = singularity<shape_type, Dimensions>(p1, p2, h[0]);
-
+          // std::cout << "is singularity " << sing.is_singularity_ << std::endl;
           if (sing.is_singularity_)
           {
             auto pbox = sing.get_box(h);
