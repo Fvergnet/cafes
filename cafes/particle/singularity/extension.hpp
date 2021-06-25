@@ -41,10 +41,76 @@
 #include <sstream>
 #include <cmath>
 
+#include <xtensor/xarray.hpp>
+#include <xtensor/xio.hpp>
+#include <xtensor/xview.hpp>
+#include <xtensor-blas/xlinalg.hpp>
+
 namespace cafes
 {
   namespace singularity
   {
+
+    #undef __FUNCT__
+    #define __FUNCT__ "linear_bijection"
+    double linear_bijection(double const& x, double const& a, double const& b, double const& c)
+    {
+        /*Linear bijection from [a,b] to [b,c]*/
+        return (b-c)/(b-a)*(x-a) + c;
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "derivative_linear_bijection"
+    double derivative_linear_bijection(double const& a,double const& b, double const& c)
+    {
+        /* Derivative of the linear bijection from [a,b] to [b,c] */
+        return (b-c)/(b-a);
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "babic_coefficients"
+    auto babic_coefficients(std::size_t const& order, double const& a, double const& b, double const& c)
+    {
+        auto y = xt::ones<double>({order+1});
+        xt::xarray<double> A;
+        A.resize({order+1, order+1});
+        for (std::size_t i=0; i<order+1; ++i)
+        {
+            for (std::size_t j=0; j<order+1; ++j)
+            {
+                A(j,i) = std::pow(derivative_linear_bijection(a,b,b+(c-b)/(i+1)), j);
+            }
+        }
+        auto x = xt::linalg::solve(A,y);
+        std::vector<double> xx(x.begin(), x.end());
+        return xx;
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "babic_extension"
+    auto babic_extension(const std::function<double(double)> &f, double const& x, double const& a, double const& b, double const& c, std::size_t const& order)
+    {
+        auto coeffs = babic_coefficients(order,a,b,c);
+        double g = 0;
+        for (std::size_t i=0; i<order+1; ++i)
+        {
+            g += coeffs[i]*f(linear_bijection(x,a,b,b+(c-b)/(i+1)));
+        }
+        return g;
+    }
+
+    #undef __FUNCT__
+    #define __FUNCT__ "babic_grad_extension"
+    auto babic_grad_extension(const std::function<double(double)> &df, double const& x,double const& a,double const& b,double const& c, std::size_t const& order)
+    {
+        auto coeffs = babic_coefficients(order,a,b,c);
+        double g = 0;
+        for (std::size_t i=0; i<order+1; ++i)
+        {
+            g += coeffs[i]*derivative_linear_bijection(a,b,b+(c-b)/(i+1))*df(linear_bijection(x,a,b,b+(c-b)/(i+1)));
+        }
+        return g;
+    }
 
     #define ALIAS_TEMPLATE_FUNCTION(highLevelF, lowLevelF) \
     template<typename... Args> \
@@ -232,41 +298,75 @@ namespace cafes
     #undef __FUNCT__
     #define __FUNCT__ "get_Babic_field_extension"
     template<typename Shape, std::size_t Dimensions, typename velocitytype>
-    PetscErrorCode get_Babic_field_extension(singularity<Shape, 2> sing, 
+    void get_Babic_field_extension(singularity<Shape, 2> sing, 
                                      particle<Shape> const& p1,
                                      geometry::position<double, Dimensions> pts,
                                      velocitytype& UsingExtended,
                                      double& psingExtended)
     {
-        PetscErrorCode ierr;
-        PetscFunctionBeginUser;
-
+        // PetscErrorCode ierr;
+        // PetscFunctionBeginUser;
+        std::size_t order = 1;
         double eps = p1.shape_factors_[0]/3.;
         double a = 2*p1.shape_factors_[0]/3.;
-        double Babic1 = -1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
-        double Babic2 =  2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
 
         double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
         double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
 
-        double R1 = p1.shape_factors_[0] +    sing.contact_length_ -    sing.contact_length_*radius/p1.shape_factors_[0];
-        double R2 = p1.shape_factors_[0] + .5*sing.contact_length_ - .5*sing.contact_length_*radius/p1.shape_factors_[0];
-
-        geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + R1 * std::cos(theta), 
-                                                          p1.center_[1] + R1 * std::sin(theta)};
-        geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + R2 * std::cos(theta),
-                                                          p1.center_[1] + R2 * std::sin(theta)};
-
-        auto Using1 = sing.get_u_sing(sympoint1); 
-        auto Using2 = sing.get_u_sing(sympoint2);
-        auto psing = Babic1*sing.get_p_sing(sympoint1) + Babic2*sing.get_p_sing(sympoint2);
         auto chir = 1.-cafes::singularity::extchiTrunc(radius, a, eps);
 
-        UsingExtended[0] = (Babic1*Using1[0] + Babic2*Using2[0])*chir;
-        UsingExtended[1] = (Babic1*Using1[1] + Babic2*Using2[1])*chir;  
-        psingExtended = psing*chir;
+        auto fp = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double psing = sing.get_p_sing(sympoint);
+            return psing;
+        };
+        psingExtended = babic_extension(fp,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
 
-        PetscFunctionReturn(0);
+        auto fux = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_u_sing(sympoint)[0];
+            return Using;
+        };
+        UsingExtended[0] = babic_extension(fux,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
+
+        auto fuy = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_u_sing(sympoint)[1];
+            return Using;
+        };
+        UsingExtended[1] = babic_extension(fuy,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
+
+
+        // double Babic1 = -1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
+        // double Babic2 =  2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
+
+        // double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
+        // double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
+
+        // double R1 = p1.shape_factors_[0] +    sing.contact_length_ -    sing.contact_length_*radius/p1.shape_factors_[0];
+        // double R2 = p1.shape_factors_[0] + .5*sing.contact_length_ - .5*sing.contact_length_*radius/p1.shape_factors_[0];
+
+        // geometry::position<double, Dimensions> sympoint1 {p1.center_[0] + R1 * std::cos(theta), 
+        //                                                   p1.center_[1] + R1 * std::sin(theta)};
+        // geometry::position<double, Dimensions> sympoint2 {p1.center_[0] + R2 * std::cos(theta),
+        //                                                   p1.center_[1] + R2 * std::sin(theta)};
+
+        // auto Using1 = sing.get_u_sing(sympoint1); 
+        // auto Using2 = sing.get_u_sing(sympoint2);
+        // auto psing = Babic1*sing.get_p_sing(sympoint1) + Babic2*sing.get_p_sing(sympoint2);
+        // auto chir = 1.-cafes::singularity::extchiTrunc(radius, a, eps);
+
+        // UsingExtended[0] = (Babic1*Using1[0] + Babic2*Using2[0])*chir;
+        // UsingExtended[1] = (Babic1*Using1[1] + Babic2*Using2[1])*chir;  
+        // psingExtended = psing*chir;
+
+        // PetscFunctionReturn(0);
     }
 
     #undef __FUNCT__
@@ -396,68 +496,114 @@ namespace cafes
                                      gradtype& gradUsingExtended,
                                      double& psingExtended)
     {
-        PetscErrorCode ierr;
-        PetscFunctionBeginUser;
-        int BabicOrder = 3;
-        
-        double eps = p1.shape_factors_[0]/4.;
-        double a = 3*p1.shape_factors_[0]/4.;
-        
-        auto BabicCoeffs = get_Babic_coefficients(BabicOrder);
-        double Babic1 = BabicCoeffs[0];//-1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
-        double Babic2 =  BabicCoeffs[1];//2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
-        // std::cout << "Babic: " << Babic1 << " " << Babic2 << std::endl; 
+        std::size_t order = 1;
+        double eps = p1.shape_factors_[0]/3.;
+        double a = 2*p1.shape_factors_[0]/3.;
 
         double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
-        double dx_radius = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/radius;
-        double dy_radius = (std::abs(pts[1]-p1.center_[1])<=1e-6) ? 0. : (pts[1] - p1.center_[1])/radius;
-        
         double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
-        double dx_theta = (std::abs(pts[1]-p1.center_[1])<=1e-6) ? 0. : (pts[1] - p1.center_[1])/(radius*radius);
-        double dy_theta = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/(radius*radius);
 
         auto chir = 1.-cafes::singularity::extchiTrunc(radius, a, eps);
         auto drchir = -1.*cafes::singularity::dextchiTrunc(radius, a, eps);
 
-        // std::vector<double> R(BabicOrder,0.);
-        // std::vector<double> drR(BabicOrder,0.);
-        // std::vector<double> Using(BabicOrder,0.);
-        // std::vector<double> gradUsing(BabicOrder,0.);
-        gradUsingExtended[0][0] = 0.;
-        gradUsingExtended[0][1] = 0.;
-        gradUsingExtended[1][0] = 0.;
-        gradUsingExtended[1][1] = 0.;
-        double psing = 0;
-        for (std::size_t i=0; i<BabicOrder; ++i)
-        {
-            auto R = lcontraction(radius, p1.shape_factors_[0], sing.contact_length_, i+1);
-            auto drR = drlcontraction(p1.shape_factors_[0], sing.contact_length_, i+1);
-            geometry::position<double, Dimensions> sympoint {p1.center_[0] + R * std::cos(theta), 
-                                                             p1.center_[1] + R * std::sin(theta)};
-            auto Using = sing.get_u_sing(sympoint);
-            auto gradUsing = sing.get_grad_u_sing(sympoint);
+        auto fp = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double psing = sing.get_p_sing(sympoint);
+            return psing;
+        };
+        psingExtended = babic_extension(fp,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
 
-            psing += BabicCoeffs[i]*sing.get_p_sing(sympoint);
-            gradUsingExtended[0][0] += ( BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[0][0] \
-                                        +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[0][1] ) \
-                                       *chir \
-                                       + BabicCoeffs[i]*Using[0]*dx_radius*drchir;
+        auto fux = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_u_sing(sympoint)[0];
+            return Using;
+        };
+
+        auto fdxux = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_grad_u_sing(sympoint)[0][0];
+            return Using;
+        };
+        gradUsingExtended[0][0] = babic_grad_extension(fdxux,radius,0.,p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*chir \
+                             + babic_extension(fux,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+
+        // auto fuy = [&p1, theta, &sing] (double r)
+        // {   
+        //     geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+        //                                                      p1.center_[1] + r * std::sin(theta)};
+        //     double Using = sing.get_u_sing(sympoint)[1];
+        //     return Using;
+        // };
+        // UsingExtended[1] = babic_extension(fuy,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
+
+        // PetscErrorCode ierr;
+        // PetscFunctionBeginUser;
+        // int BabicOrder = 3;
+        
+        // double eps = p1.shape_factors_[0]/4.;
+        // double a = 3*p1.shape_factors_[0]/4.;
+        
+        // auto BabicCoeffs = get_Babic_coefficients(BabicOrder);
+        // double Babic1 = BabicCoeffs[0];//-1. * (sing.contact_length_ + 2.*p1.shape_factors_[0]) / sing.contact_length_;
+        // double Babic2 =  BabicCoeffs[1];//2. * (sing.contact_length_ +    p1.shape_factors_[0]) / sing.contact_length_;
+        // // std::cout << "Babic: " << Babic1 << " " << Babic2 << std::endl; 
+
+        // double radius = std::sqrt( (pts[0]-p1.center_[0])*(pts[0]-p1.center_[0]) + (pts[1]-p1.center_[1])*(pts[1]-p1.center_[1]) );
+        // double dx_radius = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/radius;
+        // double dy_radius = (std::abs(pts[1]-p1.center_[1])<=1e-6) ? 0. : (pts[1] - p1.center_[1])/radius;
+        
+        // double theta = std::atan2(pts[1]-p1.center_[1], pts[0]-p1.center_[0]);
+        // double dx_theta = (std::abs(pts[1]-p1.center_[1])<=1e-6) ? 0. : (pts[1] - p1.center_[1])/(radius*radius);
+        // double dy_theta = (std::abs(pts[0]-p1.center_[0])<=1e-6) ? 0. : (pts[0] - p1.center_[0])/(radius*radius);
+
+        // auto chir = 1.-cafes::singularity::extchiTrunc(radius, a, eps);
+        // auto drchir = -1.*cafes::singularity::dextchiTrunc(radius, a, eps);
+
+        // // std::vector<double> R(BabicOrder,0.);
+        // // std::vector<double> drR(BabicOrder,0.);
+        // // std::vector<double> Using(BabicOrder,0.);
+        // // std::vector<double> gradUsing(BabicOrder,0.);
+        // gradUsingExtended[0][0] = 0.;
+        // gradUsingExtended[0][1] = 0.;
+        // gradUsingExtended[1][0] = 0.;
+        // gradUsingExtended[1][1] = 0.;
+        // double psing = 0;
+        // for (std::size_t i=0; i<BabicOrder; ++i)
+        // {
+        //     auto R = lcontraction(radius, p1.shape_factors_[0], sing.contact_length_, i+1);
+        //     auto drR = drlcontraction(p1.shape_factors_[0], sing.contact_length_, i+1);
+        //     geometry::position<double, Dimensions> sympoint {p1.center_[0] + R * std::cos(theta), 
+        //                                                      p1.center_[1] + R * std::sin(theta)};
+        //     auto Using = sing.get_u_sing(sympoint);
+        //     auto gradUsing = sing.get_grad_u_sing(sympoint);
+
+        //     psing += BabicCoeffs[i]*sing.get_p_sing(sympoint);
+        //     gradUsingExtended[0][0] += ( BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[0][0] \
+        //                                 +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[0][1] ) \
+        //                                *chir \
+        //                                + BabicCoeffs[i]*Using[0]*dx_radius*drchir;
             
-            gradUsingExtended[1][0] += (  BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[1][0]   \
-                                         +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[1][1] ) \
-                                       *chir \
-                                       + BabicCoeffs[i]*Using[1]*dx_radius*drchir;
+        //     gradUsingExtended[1][0] += (  BabicCoeffs[i]*(drR*dx_radius*std::cos(theta) - R*dx_theta*std::sin(theta))*gradUsing[1][0]   \
+        //                                  +BabicCoeffs[i]*(drR*dx_radius*std::sin(theta) + R*dx_theta*std::cos(theta))*gradUsing[1][1] ) \
+        //                                *chir \
+        //                                + BabicCoeffs[i]*Using[1]*dx_radius*drchir;
 
-            gradUsingExtended[0][1] += (  BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[0][0]   \
-                                         +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[0][1] ) \
-                                       *chir \
-                                       + BabicCoeffs[i]*Using[0]*dy_radius*drchir;
+        //     gradUsingExtended[0][1] += (  BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[0][0]   \
+        //                                  +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[0][1] ) \
+        //                                *chir \
+        //                                + BabicCoeffs[i]*Using[0]*dy_radius*drchir;
 
-            gradUsingExtended[1][1] += ( BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[1][0]   \
-                                       +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[1][1] ) \
-                                      *chir \
-                                      + BabicCoeffs[i]*Using[1]*dy_radius*drchir;
-        }
+        //     gradUsingExtended[1][1] += ( BabicCoeffs[i]*(drR*dy_radius*std::cos(theta) - R*dy_theta*std::sin(theta))*gradUsing[1][0]   \
+        //                                +BabicCoeffs[i]*(drR*dy_radius*std::sin(theta) + R*dy_theta*std::cos(theta))*gradUsing[1][1] ) \
+        //                               *chir \
+        //                               + BabicCoeffs[i]*Using[1]*dy_radius*drchir;
+        // }
 
         // double R1 = p1.shape_factors_[0] +    sing.contact_length_ -    sing.contact_length_*radius/p1.shape_factors_[0];
         // double R2 = p1.shape_factors_[0] + .5*sing.contact_length_ - .5*sing.contact_length_*radius/p1.shape_factors_[0];
@@ -509,9 +655,9 @@ namespace cafes
         //                           *chir \
         //                           + (Babic1*Using1[1] + Babic2*Using2[1])*dy_radius*drchir;
 
-        psingExtended = psing*chir;
+        // psingExtended = psing*chir;
 
-        PetscFunctionReturn(0);
+        // PetscFunctionReturn(0);
     }
 
     #undef __FUNCT__
