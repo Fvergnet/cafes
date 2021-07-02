@@ -91,6 +91,7 @@ namespace cafes
       Problem_type& problem;
       std::vector<particle<Shape>>& particles;
       std::vector<std::vector<std::pair<position_type_i, position_type>>> const& surf_points;
+      std::vector<std::vector<position_type>> const& surf_points_coordinates;
       std::vector<std::vector<geometry::vector<double, Dimensions>>> const& radial_vec;
       std::vector<int> const& nb_surf_points;
       std::vector<int> const& num;

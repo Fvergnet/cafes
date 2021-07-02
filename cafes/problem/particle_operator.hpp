@@ -239,8 +239,9 @@ namespace cafes
 
     #undef __FUNCT__
     #define __FUNCT__ "interp_rigid_motion_"
-    template<typename Shape, std::size_t Dimensions>
+    template<typename Shape, std::size_t Dimensions, typename surf_type>
     PetscErrorCode interp_rigid_motion_(std::vector<particle<Shape>> const& particles,
+                                        surf_type const& surf_points_coordinates,
                                         std::vector<std::vector<geometry::vector<double, Dimensions>>> const& r,
                                         std::vector<std::vector<geometry::vector<double, Dimensions>>>& g){
       PetscErrorCode ierr;
@@ -252,7 +253,10 @@ namespace cafes
       {
         for(std::size_t i=0; i<g[ipart].size(); ++i)
         {
-          g[ipart][i] -= particles[ipart].velocity_;
+          auto pos = surf_points_coordinates[ipart][i];
+          //physics::velocity<Dimensions> myvel {{pos[0],0.}};
+          std::cout << surf_points_coordinates[ipart][i][0] << std::endl;
+          g[ipart][i][0] -= 0.2;// particles[ipart].velocity_;
           // TODO
           //g[ipart][i] -= geometry::cross_product(particles[ipart].angular_velocity_, r[ipart][i]);
         }
@@ -296,7 +300,7 @@ namespace cafes
 
       if (rigid_motion)
       {
-        ierr = interp_rigid_motion_(ctx.particles, ctx.radial_vec, g);CHKERRQ(ierr);
+        ierr = interp_rigid_motion_(ctx.particles, ctx.surf_points_coordinates, ctx.radial_vec, g);CHKERRQ(ierr);
         if (singularity)
         {
           ierr = singularity::add_singularity_to_surf<Dimensions, Ctx>(ctx, g);CHKERRQ(ierr);

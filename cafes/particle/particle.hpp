@@ -327,16 +327,18 @@ namespace cafes
   template<std::size_t Dimensions,
            typename part_type,
            typename surf_type,
+           typename coordinates_type,
            typename radial_type,
            typename nb_type,
            typename num_type,
            typename box_type,
            typename dpart_type>
-  auto set_materials(part_type& parts, surf_type& surf_points, radial_type& radial_vec,
+  auto set_materials(part_type& parts, surf_type& surf_points, coordinates_type surf_points_coordinates, radial_type& radial_vec,
                      nb_type& nb_surf_points, num_type& num, box_type const& box,
                      std::array<double, Dimensions> const &h, dpart_type const& dpart, std::size_t const scale)
   {
     surf_points.resize(parts.size());
+    surf_points_coordinates.resize(parts.size());
     radial_vec.resize(parts.size());
     nb_surf_points.resize(parts.size());
     num.resize(parts.size());
@@ -383,6 +385,7 @@ namespace cafes
       if (geometry::intersect(box, pbox)){
         auto new_box = geometry::box_inside(box, pbox);
         auto spts = p.surface(hs[0]);
+        surf_points_coordinates[ipart].assign(spts.begin(), spts.end());
         auto spts_valid = find_surf_points_insides(spts, new_box, hp);
         surf_points[ipart].assign(spts_valid.begin(), spts_valid.end());
         nb_surf_points[ipart] = surf_points[ipart].size();

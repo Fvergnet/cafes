@@ -11,9 +11,9 @@ $exec \
     -dton_ksp_monitor_true_residual \
     -dton_ksp_rtol 1e-4 \
     -dton_ksp_type gmres \
-    -dton_ksp_max_it 100 \
+    -dton_ksp_max_it 1000 \
     -assembling \
-    -compute_singularity 1 \
+    -compute_singularity 0 \
     -order 2 \
     -distance 0.025 \
     -mx $i \

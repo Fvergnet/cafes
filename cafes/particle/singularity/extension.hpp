@@ -199,6 +199,28 @@ namespace cafes
     }
 
     #undef __FUNCT__
+    #define __FUNCT__ "get_zero_singularity_extension"
+    template<typename Shape, std::size_t Dimensions, typename gradtype>
+    PetscErrorCode get_zero_singularity_extension(singularity<Shape, 2> sing, 
+                                     particle<Shape> const& p1,
+                                     geometry::position<double, Dimensions> pts,
+                                     gradtype& gradUsingExtended,
+                                     double& psingExtended)
+    {
+        PetscErrorCode ierr;
+        PetscFunctionBeginUser;
+
+        gradUsingExtended[0][0] = 0.;
+        gradUsingExtended[0][1] = 0.;
+        gradUsingExtended[1][0] = 0.;
+        gradUsingExtended[1][1] = 0.;
+        
+        psingExtended = 0.;
+
+        PetscFunctionReturn(0);
+    }
+
+    #undef __FUNCT__
     #define __FUNCT__ "get_field_extension_with_chix"
     template<typename Shape, std::size_t Dimensions, typename velocitytype>
     PetscErrorCode get_field_extension_with_chix(singularity<Shape, 2> sing, 
@@ -461,31 +483,31 @@ namespace cafes
         PetscFunctionReturn(0);
     }
 
-    #undef __FUNCT__
-    #define __FUNCT__ "lcontraction"
-    double lcontraction(double r, double Radius, double contact_length, int l)
-    {
-        double value = Radius + contact_length*(1.-r/Radius)/l;
-        return value;
-    }
+    // #undef __FUNCT__
+    // #define __FUNCT__ "lcontraction"
+    // double lcontraction(double r, double Radius, double contact_length, int l)
+    // {
+    //     double value = Radius + contact_length*(1.-r/Radius)/l;
+    //     return value;
+    // }
 
-    #undef __FUNCT__
-    #define __FUNCT__ "drlcontraction"
-    double drlcontraction(double Radius, double contact_length, int l)
-    {
-        double value = -contact_length/(Radius*l);
-        return value;
-    }
+    // #undef __FUNCT__
+    // #define __FUNCT__ "drlcontraction"
+    // double drlcontraction(double Radius, double contact_length, int l)
+    // {
+    //     double value = -contact_length/(Radius*l);
+    //     return value;
+    // }
 
-    #undef __FUNCT__
-    #define __FUNCT__ "get_Babic_coefficients"
-    std::vector<double> get_Babic_coefficients(int const& order)
-    {
-        std::vector<double> coeffs(order,0.);
-        if (order==2) coeffs = {-9., 10.};
-        else if (order==3) coeffs = {58.5, -260.,   202.5};
-        return coeffs;
-    }
+    // #undef __FUNCT__
+    // #define __FUNCT__ "get_Babic_coefficients"
+    // std::vector<double> get_Babic_coefficients(int const& order)
+    // {
+    //     std::vector<double> coeffs(order,0.);
+    //     if (order==2) coeffs = {-9., 10.};
+    //     else if (order==3) coeffs = {58.5, -260.,   202.5};
+    //     return coeffs;
+    // }
 
     #undef __FUNCT__
     #define __FUNCT__ "get_Babic_singularity_extension"
@@ -513,6 +535,7 @@ namespace cafes
             double psing = sing.get_p_sing(sympoint);
             return psing;
         };
+
         psingExtended = babic_extension(fp,radius,0.,p1.shape_factors_[0],p1.shape_factors_[0]+sing.contact_length_, order)*chir;
 
         auto fux = [&p1, theta, &sing] (double r)
@@ -530,8 +553,51 @@ namespace cafes
             double Using = sing.get_grad_u_sing(sympoint)[0][0];
             return Using;
         };
+
+        auto fdyux = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_grad_u_sing(sympoint)[0][1];
+            return Using;
+        };
+
         gradUsingExtended[0][0] = babic_grad_extension(fdxux,radius,0.,p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*chir \
-                             + babic_extension(fux,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+                                + babic_extension(fux,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+        
+        gradUsingExtended[0][1] = babic_grad_extension(fdyux,radius,0.,p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*chir \
+                                + babic_extension(fux,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+
+        auto fuy= [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_u_sing(sympoint)[1];
+            return Using;
+        };
+
+        auto fdxuy = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_grad_u_sing(sympoint)[1][0];
+            return Using;
+        };
+
+        auto fdyuy = [&p1, theta, &sing] (double r)
+        {   
+            geometry::position<double, Dimensions> sympoint {p1.center_[0] + r * std::cos(theta), 
+                                                             p1.center_[1] + r * std::sin(theta)};
+            double Using = sing.get_grad_u_sing(sympoint)[1][1];
+            return Using;
+        };
+
+        gradUsingExtended[1][0] = babic_grad_extension(fdxuy,radius,0.,p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*chir \
+                                + babic_extension(fuy,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+        
+        gradUsingExtended[1][1] = babic_grad_extension(fdyuy,radius,0.,p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*chir \
+                                + babic_extension(fuy,radius, 0., p1.shape_factors_[0], p1.shape_factors_[0]+sing.contact_length_, order)*drchir;
+
 
         // auto fuy = [&p1, theta, &sing] (double r)
         // {   

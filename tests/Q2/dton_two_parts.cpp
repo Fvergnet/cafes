@@ -17,6 +17,11 @@ void ones(const PetscReal x[], PetscScalar *u)
     *u = 1.;
 }
 
+void somethingleft(const PetscReal x[], PetscScalar *u)
+{
+    *u = x[0]*x[1]-2*x[0]*x[0];
+}
+
 void ones_m(const PetscReal x[], PetscScalar *u)
 {
     *u = -1.;
@@ -57,7 +62,7 @@ int main(int argc, char **argv)
     auto se1 = cafes::make_circle({.5 - .5*distance - R1, .5}, R1, 0);
     auto se2 = cafes::make_circle({.5 + .5*distance + R1, .5}, R1, 0);
     std::vector<cafes::particle<decltype(se1)>> pt{
-        cafes::make_particle_with_velocity(se1, {1., 0.}, 0.),
+        cafes::make_particle_with_velocity(se1, {1, 0.}, 0.),
         cafes::make_particle_with_velocity(se2, {-1., 0.}, 0.)
     };
 
@@ -85,27 +90,27 @@ int main(int argc, char **argv)
         ierr = cafes::io::save_hdf5(saverep.c_str(), "solution_without_sing", st.sol, st.ctx->dm, st.ctx->h);
     }
     
-    std::ofstream myfile;
-    std::string filename = saverep+"/simulation_infos_compute_sing_is_"+std::to_string(singularity);
-    filename.append("_distance_is_radius_over_");
-    filename.append(std::to_string(int(std::round(R1/distance))));
-    filename.append("_mx_"+std::to_string(mx)+".txt");
-    myfile.open(filename);
-    myfile << R1 << " " << distance << " " << R1/distance << " " << singularity << " " << mx << " " << s.kspiter << "\n";
-    myfile.close();
+    // std::ofstream myfile;
+    // std::string filename = saverep+"/simulation_infos_compute_sing_is_"+std::to_string(singularity);
+    // filename.append("_distance_is_radius_over_");
+    // filename.append(std::to_string(int(std::round(R1/distance))));
+    // filename.append("_mx_"+std::to_string(mx)+".txt");
+    // myfile.open(filename);
+    // myfile << R1 << " " << distance << " " << R1/distance << " " << singularity << " " << mx << " " << s.kspiter << "\n";
+    // myfile.close();
 
-    // ff.loadmesh("test.txt");
-    // auto test = mesh.interpolate(ctx, st.sol);
+    // // ff.loadmesh("test.txt");
+    // // auto test = mesh.interpolate(ctx, st.sol);
     
-    std::string stout = "two_parts_solution_compute_sing_is_"+std::to_string(singularity);
-    // std::string stout = "rhs_sing_";
-    stout.append("_distance_is_radius_over_");
-    stout.append(std::to_string(int(std::round(R1/distance))));
-    stout.append("_mx_"+std::to_string(mx));
-    const char * stw = stout.c_str();
-    ierr = cafes::io::save_hdf5(saverep.c_str(), stw, st.sol, st.ctx->dm,
-                              st.ctx->h);
-    CHKERRQ(ierr);
+    // std::string stout = "two_parts_solution_compute_sing_is_"+std::to_string(singularity);
+    // // std::string stout = "rhs_sing_";
+    // stout.append("_distance_is_radius_over_");
+    // stout.append(std::to_string(int(std::round(R1/distance))));
+    // stout.append("_mx_"+std::to_string(mx));
+    // const char * stw = stout.c_str();
+    // ierr = cafes::io::save_hdf5(saverep.c_str(), stw, st.sol, st.ctx->dm,
+    //                           st.ctx->h);
+    // CHKERRQ(ierr);
 
     // auto ctx = make_interpolation_context(st.ctx->dm, {2*st.ctx->h[0], 2*st.ctx->h[1]}, pt[0], pt[1], singularity);
     // std::string refmeshrep = "ffppreferences/reference_mesh_distance_is_radius_over_"+std::to_string(int(std::round(R1/distance)));

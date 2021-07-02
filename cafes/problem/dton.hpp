@@ -151,6 +151,8 @@ struct convergence_context2
 
             std::vector<std::vector<std::pair<position_type_i, position_type>>>
                 surf_points_;
+            std::vector<std::vector<position_type>>
+                surf_points_coordinates_;
             std::vector<std::vector<geometry::vector<double, Dimensions>>>
                 radial_vec_;
             std::vector<int> nb_surf_points_;
@@ -193,12 +195,12 @@ struct convergence_context2
                 auto box = fem::get_DM_bounds<Dimensions>(problem_.ctx->dm, 0);
                 auto &h = problem_.ctx->h;
 
-                auto size = set_materials(parts_, surf_points_, radial_vec_,
+                auto size = set_materials(parts_, surf_points_, surf_points_coordinates_, radial_vec_,
                                           nb_surf_points_, num_, box, h, dpart_,
                                           scale_);
 
                 ctx =
-                    new Ctx{problem_,        parts_, surf_points_, radial_vec_,
+                    new Ctx{problem_,        parts_, surf_points_, surf_points_coordinates_, radial_vec_,
                             nb_surf_points_, num_,   scale_,       false,
                             false,           false,  sol_tmp};
 
@@ -244,6 +246,7 @@ struct convergence_context2
                 CHKERRQ(ierr);
 
                 ierr = VecCopy(ctx->sol_tmp, sol_rhs);
+                ierr = cafes::io::save_hdf5("testdton", "solution_rhs", sol_rhs, ctx->problem.ctx->dm, ctx->problem.ctx->h);
                 CHKERRQ(ierr);
                 PetscFunctionReturn(0);
             }

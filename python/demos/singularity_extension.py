@@ -44,6 +44,9 @@ dyUy = P.copy()
 #cpp
 Pcpp = P.copy()
 dxUxcpp = P.copy()
+dxUycpp = P.copy()
+dyUxcpp = P.copy()
+dyUycpp = P.copy()
 
 for i in range(x.shape[0]):
     for j in range(x.shape[1]):
@@ -51,11 +54,17 @@ for i in range(x.shape[0]):
             P[i,j] = sing.get_p_sing(cafes.cpp.position(x[i,j],y[i,j]))
             tmp = sing.get_grad_u_sing(cafes.cpp.position(x[i,j],y[i,j]))
             dxUx[i,j] = tmp[0][0]
+            dyUx[i,j] = tmp[0][1]
+            dxUy[i,j] = tmp[1][0]
             dyUy[i,j] = tmp[1][1]
             # cpp
             # Pcpp[i,j] = sing.get_p_sing(cafes.cpp.position(x[i,j],y[i,j]))
             # tmp = sing.get_u_sing(cafes.cpp.position(x[i,j],y[i,j]))
+            Pcpp[i,j] = P[i,j]
             dxUxcpp[i,j] = tmp[0][0]
+            dyUxcpp[i,j] = tmp[0][1]
+            dxUycpp[i,j] = tmp[1][0]
+            dyUycpp[i,j] = tmp[1][1]
             # Uycpp[i,j] = tmp[1]
         elif (x[i,j]-x1)**2 + (y[i,j]-y1)**2<r1**2:
             r = np.sqrt((x1-x[i,j])**2 + (y1-y[i,j])**2)
@@ -67,6 +76,7 @@ for i in range(x.shape[0]):
             fuy = lambda r: sing.get_u_sing(cafes.cpp.position(x1 + r*np.cos(theta), y1 + r*np.sin(theta)))[1]
             fdxux = lambda r: sing.get_grad_u_sing(cafes.cpp.position(x1 + r*np.cos(theta), y1 + r*np.sin(theta)))[0][0]
             fdyux = lambda r: sing.get_grad_u_sing(cafes.cpp.position(x1 + r*np.cos(theta), y1 + r*np.sin(theta)))[0][1]
+            fdxuy = lambda r: sing.get_grad_u_sing(cafes.cpp.position(x1 + r*np.cos(theta), y1 + r*np.sin(theta)))[1][0]
             fdyuy = lambda r: sing.get_grad_u_sing(cafes.cpp.position(x1 + r*np.cos(theta), y1 + r*np.sin(theta)))[1][1]
 
             chi = (1-cafes.cpp.extchiTrunc(r,l,eps))
@@ -78,10 +88,12 @@ for i in range(x.shape[0]):
             #           + cafes.babic_grad_extension_times_biject(fdyux,r,0.,r1,r1+d,order)*dxtheta*np.cos(theta)*chi \
             #           + cafes.babic_extension(fux,r,0.,r1,r1+d,order)*drchi*dxr
             dxUx[i,j] = cafes.babic_grad_extension(fdxux,r,0.,r1,r1+d,order)*chi + cafes.babic_extension(fux,r,0.,r1,r1+d,order)*drchi
+            dyUx[i,j] = cafes.babic_grad_extension(fdyux,r,0.,r1,r1+d,order)*chi + cafes.babic_extension(fux,r,0.,r1,r1+d,order)*drchi
+            dxUy[i,j] = cafes.babic_grad_extension(fdxuy,r,0.,r1,r1+d,order)*chi + cafes.babic_extension(fuy,r,0.,r1,r1+d,order)*drchi
             dyUy[i,j] = cafes.babic_grad_extension(fdyuy,r,0.,r1,r1+d,order)*chi + cafes.babic_extension(fuy,r,0.,r1,r1+d,order)*drchi
 
             # cpp
-            Pcpp[i,j], dxUxcpp[i,j], _, _, _ = cafes.get_Babic_singularity_extension(sing, p1, cafes.cpp.position(x[i,j],y[i,j]))
+            Pcpp[i,j], dxUxcpp[i,j], dyUxcpp[i,j], dxUycpp[i,j], dyUycpp[i,j] = cafes.get_Babic_singularity_extension(sing, p1, cafes.cpp.position(x[i,j],y[i,j]))
 
             # dyUy[i,j] = tmp[1][1]
             # Uy[i,j] = cafes.babic_extension(fuy,r,0.,r1,r1+d,order)*chi
@@ -113,13 +125,31 @@ plt.axis('equal')
 plt.contourf(x,y,dxUx - dxUxcpp,200)
 plt.plot(surf1[:,0], surf1[:,1])
 plt.plot(surf2[:,0], surf2[:,1])
+plt.title("dxux")
 plt.colorbar()
 
 plt.figure(2)
 plt.axis('equal')
-plt.contourf(x,y,dyUy,200)
+plt.contourf(x,y,dyUx - dyUxcpp,200)
 plt.plot(surf1[:,0], surf1[:,1])
 plt.plot(surf2[:,0], surf2[:,1])
+plt.title("dyux")
+plt.colorbar()
+
+plt.figure(3)
+plt.axis('equal')
+plt.contourf(x,y,dxUy - dxUycpp,200)
+plt.plot(surf1[:,0], surf1[:,1])
+plt.plot(surf2[:,0], surf2[:,1])
+plt.title("dxuy")
+plt.colorbar()
+
+plt.figure(4)
+plt.axis('equal')
+plt.contourf(x,y,dyUy - dyUycpp,200)
+plt.plot(surf1[:,0], surf1[:,1])
+plt.plot(surf2[:,0], surf2[:,1])
+plt.title("dyuy")
 plt.colorbar()
 
 plt.show()
